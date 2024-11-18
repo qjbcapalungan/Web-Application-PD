@@ -1,0 +1,26 @@
+/* Main wrapper to hold Sidebar and content */
+.App {
+    display: flex;
+    height: 100vh;
+  }
+  
+  /* Main content wrapper */
+  .main-content {
+    margin-left: 80px; /* Sidebar width */
+    display: flex;
+    flex-grow: 1;
+    padding: 20px;
+    height: 100%;
+  }
+  
+  /* Dataloggers component extended to the left */
+  .dataloggers {
+    flex: 2; /* Extend Dataloggers component to take more space */
+    margin-right: 20px; /* Add space between Dataloggers and Map */
+  }
+  
+  /* Map component with fixed width */
+  .map-container {
+    flex: 0 0 600px; /* Fixed width for Map */
+  }
+  

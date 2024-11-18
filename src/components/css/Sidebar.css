@@ -1,0 +1,70 @@
+/* Sidebar Container */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 60px; /* Small size when collapsed */
+  background-color: #04364A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* Align items to the top */
+  transition: width 0.3s ease-in-out;
+  overflow-x: hidden;
+  z-index: 1000;
+}
+
+.sidebar.expanded {
+  width: 200px; /* Expanded size */
+}
+
+.sidebar-toggle {
+  color: white;
+  font-size: 20px;
+  margin: 20px 0;
+  cursor: pointer;
+}
+
+/* Sidebar items section */
+.sidebar-items {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1; /* Take all available space to push logout and settings down */
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.sidebar-item:hover {
+  background-color: #444;
+}
+
+.sidebar-icon {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.sidebar-item span {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+
+/* Push logout to the bottom */
+.logout {
+  margin-top: auto; /* Pushes the logout button to the bottom */
+  margin-bottom: 20px;
+  color: #f44336;
+}
+
+.logout:hover {
+  background-color: #661e1e;
+}

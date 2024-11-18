@@ -1,0 +1,96 @@
+.dataloggers {
+  padding: 30px;
+  background-color: #DAFFFB;
+  border-radius: 50px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  height: auto;
+  margin-left: 10px;
+}
+
+h2 {
+  font-size: 28px;
+  font-weight: bold;
+  color: black;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  margin-top: 50px;
+}
+
+h3.last-update {
+  font-size: 14px;
+  font-weight: normal;
+  color: #555;
+  margin-top: 3px;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 100px;
+  margin-bottom: 20px;
+}
+
+.filters {
+  display: flex;
+  gap: 15px;
+}
+
+.filters span {
+  font-size: 14px;
+  font-weight: bold;
+  padding: 8px 15px;
+  border-radius: 20px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.filters span:hover {
+  background-color: #176B87;
+  color: #fff;
+}
+
+.filters span.active {
+  background-color: #176B87;
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.filter-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Data Boxes - 2 per row with scrolling */
+.data-boxes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 20px;
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.data-box {
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.data-box h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.data-box p {
+  font-size: 14px;
+  color: #777;
+}

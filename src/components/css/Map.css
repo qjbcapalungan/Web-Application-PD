@@ -1,0 +1,26 @@
+/* Map container */
+.map-container {
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    height: auto; /* Adjust height as needed */
+    overflow: hidden; /* Hide any overflow */
+  }
+  
+  /* Inner content of the map */
+  .map-content {
+    text-align: center;
+    padding: 10px;
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  /* Image styling */
+  .map-image {
+    width: 100%;
+    height: auto;
+    border-radius: 8px; /* Rounded corners for the image */
+    margin-top: 150px;
+  }
+  
