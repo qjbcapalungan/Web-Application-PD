@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './css/Dataloggers.css';
 import { FaFilter } from 'react-icons/fa';
-import LoggerDetails from './LoggerDetails';
 import { Link } from 'react-router-dom';
 
 // Sample data loggers with type information for filtering

@@ -6,17 +6,15 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-<<<<<<< HEAD
+    "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
+    "chart.js": "^4.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "mapbox-gl": "^3.8.0",
     "mongoose": "^8.8.2",
-=======
-    "axios": "^1.7.7",
-    "chart.js": "^4.4.6",
->>>>>>> 23f62572b15aa77b3657cb7753c4308104d975d5
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",

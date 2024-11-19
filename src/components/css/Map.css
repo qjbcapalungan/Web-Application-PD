@@ -1,26 +1,50 @@
 /* Map container */
 .map-container {
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    height: auto; /* Adjust height as needed */
-    overflow: hidden; /* Hide any overflow */
-  }
-  
-  /* Inner content of the map */
-  .map-content {
-    text-align: center;
-    padding: 10px;
-    font-size: 1rem;
-    color: #333;
-  }
-  
-  /* Image styling */
-  .map-image {
-    width: 100%;
-    height: auto;
-    border-radius: 8px; /* Rounded corners for the image */
-    margin-top: 150px;
-  }
-  
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Prevent overflow */
+}
+
+/* Inner content of the map */
+.map-content {
+  text-align: center;
+  padding: 10px;
+  font-size: 1rem;
+  color: #333;
+  position: relative; /* Required for map container positioning */
+  height: 500px; /* Fixed height for map display */
+}
+
+/* Map container for Mapbox */
+.map-image {
+  width: 100%;
+  height: 100%; /* Full height for the interactive map */
+  border-radius: 8px; /* Rounded corners for the map */
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content */
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
