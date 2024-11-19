@@ -68,7 +68,7 @@ h3.last-update {
   cursor: pointer;
 }
 
-/* Data Boxes - 2 per row with scrolling */
+/* Data Boxes */
 .data-boxes {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
