@@ -1,22 +1,26 @@
 /* Sidebar Container */
+.sidebar-container {
+  display: flex;
+  position: relative;
+}
+
+/* Sidebar */
 .sidebar {
   position: fixed;
   left: 0;
   top: 0;
   height: 100vh;
-  width: 60px; /* Small size when collapsed */
-  background-color: #04364A;
+  width: 60px; /* Collapsed width */
+  background-color: #04364a;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* Align items to the top */
   transition: width 0.3s ease-in-out;
-  overflow-x: hidden;
   z-index: 1000;
 }
 
 .sidebar.expanded {
-  width: 200px; /* Expanded size */
+  width: 100px; /* Expanded width */
 }
 
 .sidebar-toggle {
@@ -26,18 +30,22 @@
   cursor: pointer;
 }
 
-/* Sidebar items section */
 .sidebar-items {
   display: flex;
   flex-direction: column;
+  align-items: center; /* Center items horizontally */
+  justify-content: start; /* Align items to the top */
   width: 100%;
-  flex: 1; /* Take all available space to push logout and settings down */
+  flex: 1;
 }
 
 .sidebar-item {
   display: flex;
-  align-items: center;
-  padding: 15px;
+  flex-direction: column; /* Stack icon and text vertically */
+  justify-content: center; /* Center both vertically */
+  align-items: center; /* Center both horizontally */
+  width: 100%; /* Take full width for consistent alignment */
+  height: 80px; /* Set a larger height for spacing */
   color: white;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -48,23 +56,144 @@
 }
 
 .sidebar-icon {
-  font-size: 20px;
-  margin-right: 10px;
+  font-size: 24px; /* Adjust the size of the icon */
+  margin-bottom: 5px; /* Add spacing between icon and text */
 }
 
 .sidebar-item span {
+  font-size: 14px; /* Adjust the size of the text */
+  text-align: center; /* Center the text */
+}
+
+/* Profile Panel (Beside Sidebar) */
+.profile-panel {
+  position: fixed;
+  top: 0;
+  left: 60px; /* Align next to collapsed sidebar */
+  height: 100vh;
+  width: 300px;
+  background-color: #ffffff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  z-index: 1100;
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar.expanded + .profile-panel {
+  left: 100px;
+}
+
+.profile-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: #f5f5f5;
+}
+
+.profile-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-icon {
+  font-size: 20px;
+  color: #333;
+  cursor: pointer;
+}
+
+.profile-panel-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.avatar-large {
+  width: 80px;
+  height: 80px;
+  background-color: 04364a;
+  color: #04364a;
+  font-size: 32px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  border: 2px solid black;
+}
+
+.username {
   font-size: 16px;
-  white-space: nowrap;
-}
-
-
-/* Push logout to the bottom */
-.logout {
-  margin-top: auto; /* Pushes the logout button to the bottom */
+  font-weight: bold;
   margin-bottom: 20px;
-  color: #f44336;
+  color: #333;
 }
 
-.logout:hover {
-  background-color: #661e1e;
+.logout-button {
+  padding: 10px 20px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #c12c2c;
+}
+
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1200;
+}
+
+/* Modal */
+.modal {
+  background-color: white;
+  width: 400px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.close-icon {
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+}
+
+/* Modal Body */
+.modal-body p {
+  font-size: 16px;
+  color: #333;
 }
