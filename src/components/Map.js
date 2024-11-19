@@ -107,27 +107,27 @@ const Map = () => {
   }, []);
 
   return (
-    <div className="map-container">
-      <strong>Digital Twin</strong>
-      <div className="map-content" style={{ position: "relative", height: "500px" }}>
-        <div
-          ref={mapContainerRef}
-          style={{ width: "100%", height: "100%" }}
-          className="map-image"
-        ></div>
-      </div>
+<div className="map-container">
+  <strong>Digital Twin</strong>
+  <div className="map-content" style={{ position: "relative", height: "100%" }}>
+    <div
+      ref={mapContainerRef}
+      style={{ width: "100%", height: "100%" }}
+      className="map-image"
+    ></div>
+  </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>{modalContent?.title}</h2>
-            <p>{modalContent?.description}</p>
-            <button onClick={() => setIsModalOpen(false)}>Close</button>
-          </div>
-        </div>
-      )}
+  {/* Modal */}
+  {isModalOpen && (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>{modalContent?.title}</h2>
+        <p>{modalContent?.description}</p>
+        <button onClick={() => setIsModalOpen(false)}>Close</button>
+      </div>
     </div>
+  )}
+</div>
   );
 };
 

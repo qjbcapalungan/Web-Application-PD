@@ -56,9 +56,6 @@ function Dataloggers() {
             </span>
           ))}
         </div>
-        <div className="filter-icon">
-          <FaFilter size={20} />
-        </div>
       </div>
 
       {/* Data Logger List */}

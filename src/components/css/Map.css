@@ -1,27 +1,53 @@
 /* Map container */
 .map-container {
-  padding: 20px;
+  padding: 0; /* Remove padding for a full-screen map */
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden; /* Prevent overflow */
+  display: flex; /* Flexbox for centering */
+  flex-direction: column; /* Stack content vertically */
+  align-items: center; /* Center horizontally */
+  justify-content: flex-start; /* Ensure the map starts at the top */
+  height: 100vh; /* Ensure it takes up the full height of the viewport */
+  width: 100%; /* Ensure full width of the container */
 }
 
 /* Inner content of the map */
 .map-content {
   text-align: center;
-  padding: 10px;
+  padding: 0; /* Remove padding for a full-screen map */
   font-size: 1rem;
   color: #333;
-  position: relative; /* Required for map container positioning */
-  height: 500px; /* Fixed height for map display */
+  position: relative; /* Required for map positioning */
+  width: 100%; /* Ensure the map fills the container width */
+  flex-grow: 1; /* Allow the map to grow and take full height of container */
+  border-radius: 10px; /* Optional: retain rounded corners */
+  background-color: #f4f4f4; /* Optional: background color for the map */
 }
 
-/* Map container for Mapbox */
-.map-image {
+/* Increase the size of "Digital Twin" */
+.map-container strong {
+  font-size: 2rem; /* Make the text bigger */
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
   width: 100%;
-  height: 100%; /* Full height for the interactive map */
-  border-radius: 8px; /* Rounded corners for the map */
+  display: flex;
+  justify-content: center;
+}
+
+/* Ground style */
+.ground {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100px; /* Height of the ground */
+  background-color: #4d4d4d;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* Modal overlay */
@@ -41,7 +67,7 @@
 /* Modal content */
 .modal-content {
   background: white;
-  padding: 20px;
+  padding: 30px;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   max-width: 400px;
