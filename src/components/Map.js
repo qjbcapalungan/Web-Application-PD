@@ -3,6 +3,9 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./css/Map.css";
 
+// Import your GeoJSON file
+import geojsonData from "./map.geojson";
+
 const Map = () => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -103,31 +106,53 @@ const Map = () => {
       });
     });
 
+    // Add GeoJSON layer for Maynilad-covered areas (boundary lines only)
+    mapRef.current.on("load", () => {
+      mapRef.current.addSource("maynilad-areas", {
+        type: "geojson",
+        data: geojsonData, // Use the imported GeoJSON file
+      });
+
+      // Add boundary lines for GeoJSON
+      mapRef.current.addLayer({
+        id: "maynilad-boundaries",
+        type: "line",
+        source: "maynilad-areas",
+        paint: {
+          "line-color": "#04364a", // Black outline
+          "line-width": 3,
+        },
+      });
+    });
+
     return () => mapRef.current.remove(); // Cleanup map on unmount
   }, []);
 
   return (
-<div className="map-container">
-  <strong>Digital Twin</strong>
-  <div className="map-content" style={{ position: "relative", height: "100%" }}>
-    <div
-      ref={mapContainerRef}
-      style={{ width: "100%", height: "100%" }}
-      className="map-image"
-    ></div>
-  </div>
-
-  {/* Modal */}
-  {isModalOpen && (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{modalContent?.title}</h2>
-        <p>{modalContent?.description}</p>
-        <button onClick={() => setIsModalOpen(false)}>Close</button>
+    <div className="map-container">
+      <strong>Maynilad's Area of Concession</strong>
+      <div
+        className="map-content"
+        style={{ position: "relative", height: "100%" }}
+      >
+        <div
+          ref={mapContainerRef}
+          style={{ width: "100%", height: "100%" }}
+          className="map-image"
+        ></div>
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>{modalContent?.title}</h2>
+            <p>{modalContent?.description}</p>
+            <button onClick={() => setIsModalOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
   );
 };
 

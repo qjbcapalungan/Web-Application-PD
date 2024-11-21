@@ -1,5 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useGLTF } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+
 import './css/LoggerDetails.css';
 
 function LoggerDetails() {
@@ -8,7 +12,7 @@ function LoggerDetails() {
   const [loggerDetails, setLoggerDetails] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const dataLoggers = [
+  const dataLoggers = useMemo(() => [
     { id: 1, name: 'Data Logger 1', status: 'Working', type: 'GR', psi: 5.27, dataSent: 97 },
     { id: 2, name: 'Data Logger 2', status: 'Working', type: 'GR', psi: 3.14, dataSent: 85 },
     { id: 3, name: 'Data Logger 3', status: 'Working', type: 'GR', psi: 4.21, dataSent: 90 },
@@ -28,8 +32,10 @@ function LoggerDetails() {
     { id: 17, name: 'Data Logger 17', status: 'Working', type: 'GR', psi: 5.50, dataSent: 95 },
     { id: 18, name: 'Data Logger 18', status: 'Working', type: 'GR', psi: 6.00, dataSent: 90 },
     { id: 19, name: 'Data Logger 19', status: 'Working', type: 'GR', psi: 7.80, dataSent: 85 },
-    { id: 20, name: 'Data Logger 20', status: 'Working', type: 'GR', psi: 3.14, dataSent: 80 }
-  ];
+    { id: 20, name: 'Data Logger 20', status: 'Working', type: 'GR', psi: 3.14, dataSent: 80 },
+  ]);
+  
+  
 
   useEffect(() => {
     const logger = dataLoggers.find((logger) => logger.id === parseInt(id));
@@ -45,6 +51,12 @@ function LoggerDetails() {
 
   if (!loggerDetails) {
     return <div>Logger not found</div>;
+  }
+
+  function Model({ modelPath }) {
+    const { scene } = useGLTF(modelPath);
+    console.log(scene); // Debugging
+    return <primitive object={scene} scale={0.01} />; // Adjust scale
   }
 
   return (
@@ -79,8 +91,13 @@ function LoggerDetails() {
         </div>
       </div>
       <div className="logger-right">
-        <div className="image-container">
-          <img src="/3d.jpg" alt={`3D Model for ${loggerDetails.name}`} />
+        <div className="three-d-container">
+          <Canvas camera={{ position: [-5, 8, 5], fov: 15 }}>
+            <ambientLight intensity={0.5} />
+            <pointLight position={[10, 10, 10]} />
+            <Model modelPath="/untitled.glb" />
+            <OrbitControls />
+          </Canvas>
         </div>
 
         <div className="faults-table">

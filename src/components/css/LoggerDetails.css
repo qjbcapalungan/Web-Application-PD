@@ -155,3 +155,34 @@ table tr:nth-child(even) {
 .back-button:hover {
   background-color: #134e5a;
 }
+
+.metric img {
+  max-width: 60%;
+  height: auto;
+}
+
+.graph-container {
+  background-color: gray;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.three-d-container {
+  width: 80%; /* Adjust the width as needed */
+  height: 70vh; /* Adjust the height to your desired size */
+  margin: 0 auto; /* Center the container */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 3px solid #17a2b8; /* Add a border with a color */
+  border-radius: 15px; /* Smooth rounded corners */
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); /* Add a subtle shadow for depth */
+  background-color: #ffffff; /* Set a background color */
+  padding: 20px; /* Add padding for spacing inside */
+}
+
+.three-d-container canvas {
+  border-radius: 10px; /* Optional: Add radius to the canvas if needed */
+}
+
+
