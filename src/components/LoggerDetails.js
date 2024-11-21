@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useParams, useNavigate } from 'react-router-dom';
 import './css/LoggerDetails.css';
 
 function LoggerDetails() {
   const { id } = useParams();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
   const [loggerDetails, setLoggerDetails] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,8 +30,6 @@ function LoggerDetails() {
     { id: 19, name: 'Data Logger 19', status: 'Working', type: 'GR', psi: 7.80, dataSent: 85 },
     { id: 20, name: 'Data Logger 20', status: 'Working', type: 'GR', psi: 3.14, dataSent: 80 }
   ];
-  
-  
 
   useEffect(() => {
     const logger = dataLoggers.find((logger) => logger.id === parseInt(id));
@@ -39,7 +37,7 @@ function LoggerDetails() {
       setLoggerDetails(logger);
     }
     setLoading(false);
-  }, [id]);
+  }, [id, dataLoggers]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -63,17 +61,17 @@ function LoggerDetails() {
           </span>
         </div>
         <div className="metrics">
-      <div className="metric">
-        <div className="circle-chart">
-          <p>{loggerDetails.psi} psi</p>
+          <div className="metric">
+            <div className="circle-chart">
+              <p>{loggerDetails.psi} psi</p>
+            </div>
+          </div>
+          <div className="metric">
+            <div className="data-sent">
+              <p>Data Sent: {loggerDetails.dataSent}%</p>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="metric">
-        <div className="data-sent">
-          <p>Data Sent: {loggerDetails.dataSent}%</p>
-        </div>
-      </div>
-    </div>
         <div className="data-sent-graph">
           <div className="graph-container">
             <img src="/Datasent.jpg" alt="Data Sent Graph" />
@@ -83,6 +81,24 @@ function LoggerDetails() {
       <div className="logger-right">
         <div className="image-container">
           <img src="/3d.jpg" alt={`3D Model for ${loggerDetails.name}`} />
+        </div>
+
+        <div className="faults-table">
+          <h4>Faults Information</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Active Faults</th>
+                <th>Forecasted</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No Faults Detected</td>
+                <td>Battery Depletion: 12/15/2024</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
