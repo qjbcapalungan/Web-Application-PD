@@ -3,8 +3,7 @@
   background-color: #DAFFFB;
   border-radius: 50px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  height: auto;
-  margin-left: 10px;
+  height: 90vh;  margin-left: 5px;
 }
 
 h2 {
@@ -74,18 +73,8 @@ h3.last-update {
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
   margin-top: 20px;
-  max-height: 700px;
-  overflow-y: auto;
-}
-
-/* Data Boxes */
-.data-boxes {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-top: 20px;
-  max-height: 700px;
-  overflow-y: auto;
+  max-height: 58vh;
+  overflow-y: auto;  margin-right: px;
 }
 
 .data-box {

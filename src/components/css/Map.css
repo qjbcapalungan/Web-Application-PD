@@ -9,7 +9,7 @@
   flex-direction: column; /* Stack content vertically */
   align-items: center; /* Center horizontally */
   justify-content: flex-start; /* Ensure the map starts at the top */
-  height: 100vh; /* Ensure it takes up the full height of the viewport */
+  height: 95vh; /* Ensure it takes up the full height of the viewport */
   width: 100%; /* Ensure full width of the container */
 }
 

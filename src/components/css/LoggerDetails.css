@@ -16,7 +16,7 @@
   align-items: center;
   text-align: center;
   padding: 20px; /* Optional: add padding to give some space inside */
-  height: 100vh; /* Ensure both left and right sections take full height of the viewport */
+  height: 96vh; /* Ensure both left and right sections take full height of the viewport */
   width: 50%; /* Each section will take up 50% of the container's width */
 }
 
