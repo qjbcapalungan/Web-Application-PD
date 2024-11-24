@@ -162,9 +162,16 @@ table tr:nth-child(even) {
 }
 
 .graph-container {
-  background-color: gray;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #e0f7fa; /* Light background for better contrast */
+  border-radius: 15px; /* Rounded corners */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
+  width: 100%; /* Adjust width to occupy more space */
+  height: 40vh; /* Increase height to make the graph larger */
+  margin: 20px auto; /* Center the container with some margin */
+  padding: 15px; /* Add padding inside the container */
+  display: flex;
+  justify-content: center; /* Center the graph horizontally */
+  align-items: center; /* Center the graph vertically */
 }
 
 .three-d-container {

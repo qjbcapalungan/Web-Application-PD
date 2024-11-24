@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import './css/Dataloggers.css';
-import { FaFilter } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import dayjs from "dayjs";
+
 
 // Sample data loggers with type information for filtering
 const dataLoggers = [
@@ -26,7 +27,7 @@ const dataLoggers = [
   { id: 19, name: 'Logger 19', status: 'Active', type: 'PRV', dataPoints: [17, 19, 18, 20] },
   { id: 20, name: 'Logger 20', status: 'Inactive', type: 'GR', dataPoints: [5, 6, 7, 4] },
 ];
-
+const currentDate = dayjs().format("MMMM D, YYYY");
 function Dataloggers() {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
 
@@ -40,8 +41,8 @@ function Dataloggers() {
 
   return (
     <div className="dataloggers">
-      <h2>Malabon-Valenzuela (MVL)</h2>
-      <h3 className="last-update">Last Update: Nov 19, 2024</h3>
+      <h2>Metro Manila West Zone</h2>
+      <h3 className="last-update">Last Update: {currentDate}</h3>
 
       {/* Filter Section */}
       <div className="filter-section">

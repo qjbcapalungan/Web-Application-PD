@@ -3,8 +3,9 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./css/Map.css";
 
-// Import your GeoJSON file
+// Import your GeoJSON file and locations
 import geojsonData from "./map.geojson";
+import locations from "./location";
 
 const Map = () => {
   const mapContainerRef = useRef(null);
@@ -28,10 +29,8 @@ const Map = () => {
       dragRotate: true, // Enable drag rotation
     });
 
-    // Add navigation controls (for zooming and rotating)
-    const navControl = new mapboxgl.NavigationControl({
-      visualizePitch: true,
-    });
+    // Add navigation controls
+    const navControl = new mapboxgl.NavigationControl({ visualizePitch: true });
     mapRef.current.addControl(navControl, "top-right");
 
     // Add 3D buildings
@@ -76,25 +75,7 @@ const Map = () => {
       );
     });
 
-    // Add markers
-    const locations = [
-      {
-        coordinates: [121.0437, 14.5503],
-        title: "Makati CBD",
-        description: "Business district of Metro Manila.",
-      },
-      {
-        coordinates: [121.0537, 14.6006],
-        title: "Quezon City Memorial Circle",
-        description: "A national park and shrine.",
-      },
-      {
-        coordinates: [120.9818, 14.5794],
-        title: "Intramuros, Manila",
-        description: "Historic walled city in Manila.",
-      },
-    ];
-
+    // Add markers from locations
     locations.forEach((location) => {
       const marker = new mapboxgl.Marker()
         .setLngLat(location.coordinates)
@@ -106,7 +87,7 @@ const Map = () => {
       });
     });
 
-    // Add GeoJSON layer for Maynilad-covered areas (boundary lines only)
+    // Add GeoJSON layer for Maynilad-covered areas
     mapRef.current.on("load", () => {
       mapRef.current.addSource("maynilad-areas", {
         type: "geojson",
@@ -119,7 +100,7 @@ const Map = () => {
         type: "line",
         source: "maynilad-areas",
         paint: {
-          "line-color": "#04364a", // Black outline
+          "line-color": "#04364a",
           "line-width": 3,
         },
       });
