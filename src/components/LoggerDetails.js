@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
@@ -14,19 +15,27 @@ function LoggerDetails() {
   const [loggerDetails, setLoggerDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [graphData, setGraphData] = useState({
-    labels: [], // Time intervals or counts
+    labels: [],
     datasets: [
       {
-        label: 'PSI Values',
-        data: [], // Stores the psi values over time
+        label: 'PSI Values (Actual)',
+        data: [],
         borderColor: 'rgba(75,192,192,1)',
         backgroundColor: 'rgba(75,192,192,0.2)',
         fill: true,
         tension: 0.4,
       },
+      {
+        label: 'PSI Values (Predicted)',
+        data: [],
+        borderColor: 'rgba(255,99,132,1)',
+        backgroundColor: 'rgba(255,99,132,0.2)',
+        fill: true,
+        tension: 0.4,
+      },
     ],
   });
-
+  const [dataSentPercentage, setDataSentPercentage] = useState(0);
   const [currentPsi, setCurrentPsi] = useState(
     Array.from({ length: 20 }, () =>
       parseFloat(faker.number.float({ min: 2.5, max: 8.0, precision: 0.01 }))
@@ -34,31 +43,56 @@ function LoggerDetails() {
   );
 
   useEffect(() => {
-    // Update `psi` values and graph data every 5 seconds
     const interval = setInterval(() => {
-      const newPsiValues = currentPsi.map(() =>
+      const newFakePsiValues = currentPsi.map(() =>
         parseFloat(faker.number.float({ min: 2.5, max: 8.0, precision: 0.01 }))
       );
 
-      // Update graph data
-      setGraphData((prevGraphData) => ({
-        labels: [...prevGraphData.labels, `Interval ${prevGraphData.labels.length + 1}`],
-        datasets: [
-          {
-            ...prevGraphData.datasets[0],
-            data: [...prevGraphData.datasets[0].data, ...newPsiValues],
-          },
-        ],
-      }));
+      axios
+        .post('http://localhost:5001/predict', { inputs: newFakePsiValues })
+        .then((response) => {
+          const forecastedPsiValues = response.data.prediction;
 
-      setCurrentPsi(newPsiValues);
+          setGraphData((prevGraphData) => {
+            const newLabels = [
+              ...prevGraphData.labels,
+              `Interval ${prevGraphData.labels.length + 1}`,
+            ];
+            const intervalCount = newLabels.length;
+
+            // Update Data Sent Percentage
+            const newPercentage = (intervalCount % 96) / 96 * 100;
+            setDataSentPercentage(Math.floor(newPercentage));
+
+            return {
+              labels: newLabels,
+              datasets: [
+                {
+                  ...prevGraphData.datasets[0],
+                  data: [...prevGraphData.datasets[0].data, ...newFakePsiValues],
+                },
+                {
+                  ...prevGraphData.datasets[1],
+                  data: [
+                    ...prevGraphData.datasets[1].data,
+                    ...forecastedPsiValues,
+                  ],
+                },
+              ],
+            };
+          });
+
+          setCurrentPsi(newFakePsiValues);
+        })
+        .catch((error) => {
+          console.error('Error fetching prediction:', error);
+        });
     }, 5000);
 
-    return () => clearInterval(interval); // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, [currentPsi]);
 
   useEffect(() => {
-    // Find logger details by ID
     const logger = { id: parseInt(id), name: `Data Logger ${id}`, psi: currentPsi[id - 1] };
     if (logger) {
       setLoggerDetails(logger);
@@ -98,7 +132,7 @@ function LoggerDetails() {
           </div>
           <div className="metric">
             <div className="data-sent">
-              <p>Data Sent: 100%</p>
+              <p>Data Sent: {dataSentPercentage}%</p>
             </div>
           </div>
         </div>
@@ -117,7 +151,6 @@ function LoggerDetails() {
             <OrbitControls />
           </Canvas>
         </div>
-
         <div className="faults-table">
           <h4>Faults Information</h4>
           <table>
@@ -130,7 +163,7 @@ function LoggerDetails() {
             <tbody>
               <tr>
                 <td>No Faults Detected</td>
-                <td>Battery Depletion: 12/15/2024</td>
+                <td>For Inspection: 12/15/2024</td>
               </tr>
             </tbody>
           </table>
