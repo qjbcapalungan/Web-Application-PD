@@ -5,7 +5,6 @@ import { useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Line } from 'react-chartjs-2';
-import { faker } from '@faker-js/faker';
 import './chartConfig'; // Importing the file ensures components are registered
 import './css/LoggerDetails.css';
 
@@ -30,75 +29,93 @@ function LoggerDetails() {
         data: [],
         borderColor: 'rgba(255,99,132,1)',
         backgroundColor: 'rgba(255,99,132,0.2)',
-        fill: true,
+        fill: false,
         tension: 0.4,
       },
     ],
   });
   const [dataSentPercentage, setDataSentPercentage] = useState(0);
-  const [currentPsi, setCurrentPsi] = useState(
-    Array.from({ length: 20 }, () =>
-      parseFloat(faker.number.float({ min: 2.5, max: 8.0, precision: 0.01 }))
-    )
-  );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const newFakePsiValues = currentPsi.map(() =>
-        parseFloat(faker.number.float({ min: 2.5, max: 8.0, precision: 0.01 }))
-      );
-
+      // Fetch predicted PSI values first
       axios
-        .post('http://localhost:5001/predict', { inputs: newFakePsiValues })
-        .then((response) => {
-          const forecastedPsiValues = response.data.prediction;
-
+        .get('http://localhost:5001/predict')
+        .then((res) => {
+          const forecastedPsiValues = res.data.prediction;
+  
+          // Update predicted data
           setGraphData((prevGraphData) => {
+            const currentLabelCount = prevGraphData.labels.length;
+  
             const newLabels = [
               ...prevGraphData.labels,
-              `Interval ${prevGraphData.labels.length + 1}`,
+              ...forecastedPsiValues.map((_, idx) => `Interval ${currentLabelCount + idx + 1}`),
             ];
-            const intervalCount = newLabels.length;
-
-            // Update Data Sent Percentage
-            const newPercentage = (intervalCount % 96) / 96 * 100;
-            setDataSentPercentage(Math.floor(newPercentage));
-
+  
+            const updatedPredictedData = [
+              ...prevGraphData.datasets[1].data,
+              ...forecastedPsiValues,
+            ];
+  
             return {
+              ...prevGraphData,
               labels: newLabels,
               datasets: [
-                {
-                  ...prevGraphData.datasets[0],
-                  data: [...prevGraphData.datasets[0].data, ...newFakePsiValues],
-                },
+                prevGraphData.datasets[0], // Keep actual data unchanged for now
                 {
                   ...prevGraphData.datasets[1],
-                  data: [
-                    ...prevGraphData.datasets[1].data,
-                    ...forecastedPsiValues,
-                  ],
+                  data: updatedPredictedData,
                 },
               ],
             };
           });
-
-          setCurrentPsi(newFakePsiValues);
+  
+          // Fetch actual PSI values with a delay
+          setTimeout(() => {
+            axios
+              .get('http://localhost:5001/current_psi?n=10')
+              .then((response) => {
+                const actualPsiValues = response.data.current_psi;
+  
+                setGraphData((prevGraphData) => {
+                  const updatedActualData = [
+                    ...prevGraphData.datasets[0].data,
+                    ...actualPsiValues,
+                  ];
+  
+                  return {
+                    ...prevGraphData,
+                    datasets: [
+                      {
+                        ...prevGraphData.datasets[0],
+                        data: updatedActualData,
+                      },
+                      prevGraphData.datasets[1], // Keep predicted data unchanged
+                    ],
+                  };
+                });
+  
+                // Update data sent percentage
+                setDataSentPercentage((prev) => ((prev + 10) % 96));
+              })
+              .catch((err) => console.error('Error fetching actual PSI:', err));
+          }, 5000); // Delay actual data by 5 seconds
         })
-        .catch((error) => {
-          console.error('Error fetching prediction:', error);
-        });
+        .catch((err) => console.error('Error fetching prediction:', err));
     }, 5000);
-
+  
     return () => clearInterval(interval);
-  }, [currentPsi]);
+  }, []);
+  
 
   useEffect(() => {
-    const logger = { id: parseInt(id), name: `Data Logger ${id}`, psi: currentPsi[id - 1] };
+    const logger = { id: parseInt(id), name: `Data Logger ${id}` };
     if (logger) {
       setLoggerDetails(logger);
     }
     setLoading(false);
-  }, [id, currentPsi]);
+  }, [id]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -127,7 +144,7 @@ function LoggerDetails() {
         <div className="metrics">
           <div className="metric">
             <div className="circle-chart">
-              <p>{loggerDetails.psi.toFixed(2)} psi</p>
+              <p>Current PSI: {graphData.datasets[0].data.slice(-1)[0]?.toFixed(2) || 'N/A'} psi</p>
             </div>
           </div>
           <div className="metric">

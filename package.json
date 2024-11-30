@@ -18,6 +18,7 @@
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "flask": "^0.2.10",
     "mapbox-gl": "^3.8.0",
     "mongoose": "^8.8.2",
     "papaparse": "^5.4.1",
