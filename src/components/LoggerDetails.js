@@ -35,6 +35,7 @@ function LoggerDetails() {
     ],
   });
   const [dataSentPercentage, setDataSentPercentage] = useState(0);
+  const [forecastedFaults, setForecastedFaults] = useState('No Forecasted Faults');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -43,21 +44,21 @@ function LoggerDetails() {
         .get('http://localhost:5001/predict')
         .then((res) => {
           const forecastedPsiValues = res.data.prediction;
-  
+
           // Update predicted data
           setGraphData((prevGraphData) => {
             const currentLabelCount = prevGraphData.labels.length;
-  
+
             const newLabels = [
               ...prevGraphData.labels,
               ...forecastedPsiValues.map((_, idx) => `Interval ${currentLabelCount + idx + 1}`),
             ];
-  
+
             const updatedPredictedData = [
               ...prevGraphData.datasets[1].data,
               ...forecastedPsiValues,
             ];
-  
+
             return {
               ...prevGraphData,
               labels: newLabels,
@@ -70,20 +71,25 @@ function LoggerDetails() {
               ],
             };
           });
-  
+
+          // Check for faults in predicted PSI values
+          if (forecastedPsiValues.some((value) => value < 53)) {
+            setForecastedFaults('Fault Detected');
+          }
+
           // Fetch actual PSI values with a delay
           setTimeout(() => {
             axios
-              .get('http://localhost:5001/current_psi?n=10')
+              .get('http://localhost:5001/current_psi')
               .then((response) => {
                 const actualPsiValues = response.data.current_psi;
-  
+
                 setGraphData((prevGraphData) => {
                   const updatedActualData = [
                     ...prevGraphData.datasets[0].data,
                     ...actualPsiValues,
                   ];
-  
+
                   return {
                     ...prevGraphData,
                     datasets: [
@@ -95,19 +101,18 @@ function LoggerDetails() {
                     ],
                   };
                 });
-  
+
                 // Update data sent percentage
                 setDataSentPercentage((prev) => ((prev + 10) % 96));
               })
               .catch((err) => console.error('Error fetching actual PSI:', err));
-          }, 5000); // Delay actual data by 5 seconds
+          }, 1000); // Delay actual data by 5 seconds
         })
         .catch((err) => console.error('Error fetching prediction:', err));
-    }, 5000);
-  
+    }, 1000);
+
     return () => clearInterval(interval);
   }, []);
-  
 
   useEffect(() => {
     const logger = { id: parseInt(id), name: `Data Logger ${id}` };
@@ -180,7 +185,7 @@ function LoggerDetails() {
             <tbody>
               <tr>
                 <td>No Faults Detected</td>
-                <td>For Inspection: 12/15/2024</td>
+                <td>{forecastedFaults}</td>
               </tr>
             </tbody>
           </table>

@@ -13,7 +13,7 @@ CSV_FILE_PATH = r'C:\Users\Denver\Desktop\Web-Application-PD\server\inputdata.cs
 input_data = pd.read_csv(CSV_FILE_PATH)
 
 # Load the machine learning model
-MODEL_PATH = r'C:\Users\Denver\Desktop\Web-Application-PD\server\LSTM2.h5'
+MODEL_PATH = r'C:\Users\Denver\Desktop\Web-Application-PD\server\LSTM3.h5'
 model = tf.keras.models.load_model(MODEL_PATH)
 
 # Global index to simulate real-time streaming of actual values
@@ -42,17 +42,19 @@ def predict_future():
     """
     global current_index
     try:
-        if current_index < 10:
+        # Check if we have at least 10 values for prediction
+        if current_index < 1:
             return jsonify({'prediction': []})  # Not enough data to make predictions
 
-        # Get the last 10 actual values for prediction
-        inputs = input_data['psi'].iloc[current_index-10:current_index].values.reshape(1, -1, 1)
+        # Get the last 10 PSI values as a sequence
+        inputs = input_data['psi'].iloc[current_index-1:current_index].values.reshape(1, 1, 1)
 
-        # Predict the next time step(s)
+        # Predict the next PSI value(s)
         predictions = model.predict(inputs)
         return jsonify({'prediction': predictions.flatten().tolist()})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5001, debug=True)
