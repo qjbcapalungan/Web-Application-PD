@@ -130,7 +130,7 @@ function LoggerDetails() {
             <tbody>
               <tr>
                 <td>No Faults Detected</td>
-                <td>Battery Depletion: 12/15/2024</td>
+                <td>For inspection: 12/15/2024</td>
               </tr>
             </tbody>
           </table>
