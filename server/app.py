@@ -47,7 +47,7 @@ def predict_future():
             return jsonify({'prediction': []})  # Not enough data to make predictions
 
         # Get the last 10 PSI values as a sequence
-        inputs = input_data['psi'].iloc[current_index-1:current_index].values.reshape(1, 1, 1)
+        inputs = input_data['psi'].iloc[max(0, current_index-1):current_index].values.reshape(1, -1, 1)
 
         # Predict the next PSI value(s)
         predictions = model.predict(inputs)

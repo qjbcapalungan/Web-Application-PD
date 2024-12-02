@@ -14,105 +14,119 @@ function LoggerDetails() {
   const [loggerDetails, setLoggerDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [graphData, setGraphData] = useState({
-    labels: [],
-    datasets: [
-      {
-        label: 'PSI Values (Actual)',
-        data: [],
-        borderColor: 'rgba(75,192,192,1)',
-        backgroundColor: 'rgba(75,192,192,0.2)',
-        fill: true,
-        tension: 0.4,
-      },
-      {
-        label: 'PSI Values (Predicted)',
-        data: [],
-        borderColor: 'rgba(255,99,132,1)',
-        backgroundColor: 'rgba(255,99,132,0.2)',
-        fill: false,
-        tension: 0.4,
-      },
-    ],
+    currentLabels: [],
+    predictedLabels: [],
+    currentData: [],
+    predictedData: [],
   });
   const [dataSentPercentage, setDataSentPercentage] = useState(0);
   const [forecastedFaults, setForecastedFaults] = useState('No Forecasted Faults');
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Fetch predicted PSI values first
-      axios
-        .get('http://localhost:5001/predict')
-        .then((res) => {
-          const forecastedPsiValues = res.data.prediction;
+    const fetchInitialData = async () => {
+      try {
+        // Fetch current PSI values
+        const currentRes = await axios.get('http://localhost:5001/current_psi');
+        const initialCurrentPsiValues = currentRes.data.current_psi;
 
-          // Update predicted data
-          setGraphData((prevGraphData) => {
-            const currentLabelCount = prevGraphData.labels.length;
+        // Fetch predicted PSI values
+        const predictedRes = await axios.get('http://localhost:5001/predict');
+        const initialPredictedPsiValues = predictedRes.data.prediction || [];
 
-            const newLabels = [
-              ...prevGraphData.labels,
-              ...forecastedPsiValues.map((_, idx) => `Interval ${currentLabelCount + idx + 1}`),
-            ];
+        setGraphData({
+          currentLabels: initialCurrentPsiValues.map((_, idx) => `Interval ${idx + 1}`),
+          predictedLabels: initialPredictedPsiValues.map((_, idx) => `Future Interval ${idx + 1}`),
+          currentData: initialCurrentPsiValues,
+          predictedData: initialPredictedPsiValues,
+        });
+      } catch (err) {
+        console.error('Error fetching initial data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-            const updatedPredictedData = [
-              ...prevGraphData.datasets[1].data,
-              ...forecastedPsiValues,
-            ];
-
-            return {
-              ...prevGraphData,
-              labels: newLabels,
-              datasets: [
-                prevGraphData.datasets[0], // Keep actual data unchanged for now
-                {
-                  ...prevGraphData.datasets[1],
-                  data: updatedPredictedData,
-                },
-              ],
-            };
-          });
-
-          // Check for faults in predicted PSI values
-          if (forecastedPsiValues.some((value) => value < 53)) {
-            setForecastedFaults('Fault Detected');
-          }
-
-          // Fetch actual PSI values with a delay
-          setTimeout(() => {
-            axios
-              .get('http://localhost:5001/current_psi')
-              .then((response) => {
-                const actualPsiValues = response.data.current_psi;
-
-                setGraphData((prevGraphData) => {
-                  const updatedActualData = [
-                    ...prevGraphData.datasets[0].data,
-                    ...actualPsiValues,
-                  ];
-
-                  return {
-                    ...prevGraphData,
-                    datasets: [
-                      {
-                        ...prevGraphData.datasets[0],
-                        data: updatedActualData,
-                      },
-                      prevGraphData.datasets[1], // Keep predicted data unchanged
-                    ],
-                  };
-                });
-
-                // Update data sent percentage
-                setDataSentPercentage((prev) => ((prev + 10) % 96));
-              })
-              .catch((err) => console.error('Error fetching actual PSI:', err));
-          }, 1000); // Delay actual data by 5 seconds
-        })
-        .catch((err) => console.error('Error fetching prediction:', err));
-    }, 1000);
-
-    return () => clearInterval(interval);
+    fetchInitialData();
   }, []);
+
+  useEffect(() => {
+  const fetchInitialData = async () => {
+    try {
+      // Fetch predicted PSI values first
+      const predictedRes = await axios.get('http://localhost:5001/predict');
+      const initialPredictedPsiValues = predictedRes.data.prediction || [];
+
+      // Fetch current PSI values
+      const currentRes = await axios.get('http://localhost:5001/current_psi');
+      const initialCurrentPsiValues = currentRes.data.current_psi;
+
+      setGraphData({
+        predictedLabels: initialPredictedPsiValues.map((_, idx) => `Future Interval ${idx + 1}`),
+        currentLabels: initialCurrentPsiValues.map((_, idx) => `Interval ${idx + 1}`),
+        predictedData: initialPredictedPsiValues,
+        currentData: initialCurrentPsiValues,
+      });
+    } catch (err) {
+      console.error('Error fetching initial data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchInitialData();
+}, []);
+
+useEffect(() => {
+  let currentIndex = 0; // Keeps track of the sequence (0: predicted, 1: actual)
+  
+  const interval = setInterval(async () => {
+    try {
+      if (currentIndex % 2 === 0) {
+        // Fetch predicted PSI values first
+        const predictedRes = await axios.get('http://localhost:5001/predict');
+        const newPredictedPsiValues = predictedRes.data.prediction || [];
+
+        setGraphData((prev) => {
+          const predictionStartIdx = prev.currentLabels.length + 1; // Start predictions from the next interval
+          return {
+            ...prev,
+            predictedLabels: [
+              ...prev.predictedLabels,
+              ...newPredictedPsiValues.map((_, idx) => `Future Interval ${predictionStartIdx + idx}`),
+            ],
+            predictedData: [...prev.predictedData, ...newPredictedPsiValues],
+          };
+        });
+      } else {
+        // Fetch current PSI values
+        const currentRes = await axios.get('http://localhost:5001/current_psi');
+        const newCurrentPsiValues = currentRes.data.current_psi || [];
+
+        setGraphData((prev) => ({
+          ...prev,
+          currentLabels: [
+            ...prev.currentLabels,
+            ...newCurrentPsiValues.map((_, idx) => `Interval ${prev.currentData.length + idx + 1}`),
+          ],
+          currentData: [...prev.currentData, ...newCurrentPsiValues],
+        }));
+
+        // Update data sent percentage only after fetching actual values
+        setDataSentPercentage((prev) => ((prev + 10) % 96));
+      }
+
+      // Alternate between prediction and actual fetching
+      currentIndex = (currentIndex + 1) % 2;
+    } catch (err) {
+      console.error('Error updating data:', err);
+    }
+  }, 5000); // Fetch every 5 seconds
+
+  return () => clearInterval(interval);
+}, []);
+
+
+  
 
   useEffect(() => {
     const logger = { id: parseInt(id), name: `Data Logger ${id}` };
@@ -149,7 +163,9 @@ function LoggerDetails() {
         <div className="metrics">
           <div className="metric">
             <div className="circle-chart">
-              <p>Current PSI: {graphData.datasets[0].data.slice(-1)[0]?.toFixed(2) || 'N/A'} psi</p>
+              <p>
+                Current PSI: {graphData.currentData.slice(-1)[0]?.toFixed(2) || 'N/A'} psi
+              </p>
             </div>
           </div>
           <div className="metric">
@@ -160,7 +176,40 @@ function LoggerDetails() {
         </div>
         <div className="data-sent-graph">
           <div className="graph-container">
-            <Line data={graphData} />
+            <h4>Predicted PSI Values</h4>
+            <Line
+              data={{
+                labels: graphData.predictedLabels,
+                datasets: [
+                  {
+                    label: 'PSI Values (Predicted)',
+                    data: graphData.predictedData,
+                    borderColor: 'rgba(255,99,132,1)',
+                    backgroundColor: 'rgba(255,99,132,0.2)',
+                    fill: false,
+                    tension: 0.4,
+                  },
+                ],
+              }}
+            />
+          </div>
+          <div className="graph-container">
+            <h4>Current PSI Values</h4>
+            <Line
+              data={{
+                labels: graphData.currentLabels,
+                datasets: [
+                  {
+                    label: 'PSI Values (Current)',
+                    data: graphData.currentData,
+                    borderColor: 'rgba(75,192,192,1)',
+                    backgroundColor: 'rgba(75,192,192,0.2)',
+                    fill: true,
+                    tension: 0.4,
+                  },
+                ],
+              }}
+            />
           </div>
         </div>
       </div>
