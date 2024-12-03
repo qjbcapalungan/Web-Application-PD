@@ -166,9 +166,9 @@ table tr:nth-child(even) {
   border-radius: 15px; /* Rounded corners */
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
   width: 100%; /* Adjust width to occupy more space */
-  height: 40vh; /* Chart height */
-  margin: 20px auto; /* Center the container */
-  padding: 15px; /* Padding for spacing inside */
+  height: 32vh; /* Chart height */
+  margin: 10px auto; /* Center the container */
+  padding: 10px; /* Padding for spacing inside */
   display: flex;
   flex-direction: column;
   justify-content: center; /* Center the graph horizontally */
@@ -185,7 +185,7 @@ table tr:nth-child(even) {
 .data-sent-graph {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Space between the charts */
+  gap: 10px; /* Space between the charts */
 }
 
 .three-d-container {
@@ -206,4 +206,9 @@ table tr:nth-child(even) {
   border-radius: 10px; /* Optional: Add radius to the canvas if needed */
 }
 
-
+.real-time-chart {
+  width: 150%;
+  height: 120%;
+  object-fit: contain; /* Ensures the image scales nicely within its container */
+  border-radius: 10px;
+}
