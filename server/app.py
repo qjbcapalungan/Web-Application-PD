@@ -7,13 +7,13 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Path to the input data CSV file
-CSV_FILE_PATH = r'C:\Users\Denver\Desktop\Web-Application-PD\server\inputdata.csv'
+CSV_FILE_PATH = r'inputdata.csv'
 
 # Load input data from the CSV
 input_data = pd.read_csv(CSV_FILE_PATH)
 
 # Load the machine learning model
-MODEL_PATH = r'C:\Users\Denver\Desktop\Web-Application-PD\server\LSTM3.h5'
+MODEL_PATH = r'LSTM3.h5'
 model = tf.keras.models.load_model(MODEL_PATH)
 
 # Global index to simulate real-time streaming of actual values
