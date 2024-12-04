@@ -206,4 +206,9 @@ table tr:nth-child(even) {
   border-radius: 10px; /* Optional: Add radius to the canvas if needed */
 }
 
-
+.real-time-chart {
+  width: 150%;
+  height: 120%;
+  object-fit: contain; /* Ensures the image scales nicely within its container */
+  border-radius: 10px;
+}
