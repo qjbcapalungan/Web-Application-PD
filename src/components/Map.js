@@ -1,140 +1,94 @@
-import React, { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import "./css/Map.css";
+import React, { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import "./css/ModalViewer.css"; // Corrected import path for the CSS file
 
-// Import your GeoJSON file and locations
-import geojsonData from "./map.geojson";
-import locations from "./location";
-
-const Map = () => {
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState(null);
+const ModelViewer = () => {
+  const containerRef = useRef(null); // Reference for the container
+  const cameraRef = useRef(null); // Reference to the camera
 
   useEffect(() => {
-    mapboxgl.accessToken =
-      "pk.eyJ1IjoiZGVudmVybWF0ZW8iLCJhIjoiY20zamlmOGF6MDN0NzJ2cTRhbzRrZG4wbSJ9.bCOMerfFUiUVq5-iThc2Lg";
+    // Create scene
+    const scene = new THREE.Scene();
 
-    // Initialize the map
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      center: [121.0562, 14.5547], // Center on Metro Manila
-      zoom: 12,
-      pitch: 45,
-      bearing: 0,
-      antialias: true,
-      dragRotate: true, // Enable drag rotation
+    // Set up camera
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1, 5); // Adjusted for better visibility
+    cameraRef.current = camera; // Store camera reference
+
+    // Set up renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);  // Make renderer size match window dimensions
+    containerRef.current.appendChild(renderer.domElement);  // Add the renderer to the container
+
+    // Add lighting
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    scene.add(directionalLight);
+
+    // Load GLB Model
+    const loader = new GLTFLoader();
+    loader.load("/JEMAS.glb", (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.5, 0.5, 0.5); // Scale down the model
+      model.position.set(0, -1, 0); // Lower it by decreasing the Y value
+      scene.add(model);
+      animate();
     });
 
-    // Add navigation controls
-    const navControl = new mapboxgl.NavigationControl({ visualizePitch: true });
-    mapRef.current.addControl(navControl, "top-right");
+    // Add Orbit Controls for rotation
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // Smooth rotation
+    controls.dampingFactor = 0.1;
+    controls.rotateSpeed = 1;
+    controls.enableZoom = false; // Disable zoom if not needed
+    controls.update();
 
-    // Add 3D buildings
-    mapRef.current.on("style.load", () => {
-      const layers = mapRef.current.getStyle().layers;
-      const labelLayerId = layers.find(
-        (layer) => layer.type === "symbol" && layer.layout["text-field"]
-      ).id;
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      controls.update(); // Update rotation
+      renderer.render(scene, camera);
+    };
 
-      mapRef.current.addLayer(
-        {
-          id: "add-3d-buildings",
-          source: "composite",
-          "source-layer": "building",
-          filter: ["==", "extrude", "true"],
-          type: "fill-extrusion",
-          minzoom: 15,
-          paint: {
-            "fill-extrusion-color": "#aaa",
-            "fill-extrusion-height": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              15,
-              0,
-              15.05,
-              ["get", "height"],
-            ],
-            "fill-extrusion-base": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              15,
-              0,
-              15.05,
-              ["get", "min_height"],
-            ],
-            "fill-extrusion-opacity": 0.6,
-          },
-        },
-        labelLayerId
-      );
-    });
+    // Handle resizing
+    const handleResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener("resize", handleResize);
 
-    // Add markers from locations
-    locations.forEach((location) => {
-      const marker = new mapboxgl.Marker()
-        .setLngLat(location.coordinates)
-        .addTo(mapRef.current);
+    // Handle scroll to zoom out (change camera's Z position)
+    const handleScroll = (event) => {
+      const zoomSpeed = 0.1; // Adjust speed of zoom
+      const currentCameraZ = camera.position.z;
 
-      marker.getElement().addEventListener("click", () => {
-        setModalContent(location); // Set the clicked location as modal content
-        setIsModalOpen(true); // Open the modal
-      });
-    });
+      // If scrolling down, zoom out by moving the camera further away
+      if (event.deltaY > 0) {
+        camera.position.z += zoomSpeed;
+      } else {
+        // If scrolling up, zoom in by moving the camera closer
+        if (currentCameraZ > 1) {
+          camera.position.z -= zoomSpeed;
+        }
+      }
+    };
 
-    // Add GeoJSON layer for Maynilad-covered areas
-    mapRef.current.on("load", () => {
-      mapRef.current.addSource("maynilad-areas", {
-        type: "geojson",
-        data: geojsonData, // Use the imported GeoJSON file
-      });
+    window.addEventListener("wheel", handleScroll);
 
-      // Add boundary lines for GeoJSON
-      mapRef.current.addLayer({
-        id: "maynilad-boundaries",
-        type: "line",
-        source: "maynilad-areas",
-        paint: {
-          "line-color": "#04364a",
-          "line-width": 3,
-        },
-      });
-    });
-
-    return () => mapRef.current.remove(); // Cleanup map on unmount
+    return () => {
+      containerRef.current.removeChild(renderer.domElement);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("wheel", handleScroll);
+    };
   }, []);
 
-  return (
-    <div className="map-container">
-      <strong>Maynilad's Area of Concession</strong>
-      <div
-        className="map-content"
-        style={{ position: "relative", height: "100%" }}
-      >
-        <div
-          ref={mapContainerRef}
-          style={{ width: "100%", height: "100%" }}
-          className="map-image"
-        ></div>
-      </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>{modalContent?.title}</h2>
-            <p>{modalContent?.description}</p>
-            <button onClick={() => setIsModalOpen(false)}>Close</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <div ref={containerRef} className="model-container" />; // Attach the ref to the div
 };
 
-export default Map;
+export default ModelViewer;

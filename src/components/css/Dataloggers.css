@@ -3,7 +3,8 @@
   background-color: #DAFFFB;
   border-radius: 50px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  height: 90vh;  margin-left: 5px;
+  height: 90vh;
+  margin-left: 5px;
 }
 
 h2 {
@@ -70,11 +71,11 @@ h3.last-update {
 /* Data Boxes */
 .data-boxes {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 15px;
   margin-top: 20px;
   max-height: 58vh;
-  overflow-y: auto;  margin-right: px;
+  overflow-y: auto;
 }
 
 .data-box {
@@ -83,10 +84,13 @@ h3.last-update {
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .data-box:hover {
-  background-color: #f0f0f0; /* Light gray background on hover */
+  background-color: #f0f0f0;
 }
 
 .data-box h4 {
@@ -99,12 +103,27 @@ h3.last-update {
   color: #777;
 }
 
-/* Remove underline and set text color to black for links */
+/* Ensures text stays black */
 .data-box a {
-  text-decoration: none; /* Remove underline */
-  color: black; /* Set text color to black */
+  text-decoration: none;
+  color: black;
 }
 
 .data-box a:hover {
-  color: black; /* Ensure text color stays black on hover */
+  color: black;
+}
+
+/* New styles for left and right alignment */
+.data-content {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.data-left {
+  text-align: left;
+}
+
+.data-right {
+  text-align: right;
 }

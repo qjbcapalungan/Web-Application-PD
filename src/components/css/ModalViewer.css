@@ -1,0 +1,17 @@
+/* Center the model viewer */
+.model-container {
+    width: 50vw !important; /* Set the width to 50% of the viewport */
+    height: 95vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(to bottom, #e0e0e0, #bdbdbd) !important; /* Light gray gradient */
+    overflow: hidden; /* Prevent content from overflowing */
+  }
+  
+  /* Canvas styling */
+  canvas {
+    border-radius: 10px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important; /* Soft shadow */
+  }
+  

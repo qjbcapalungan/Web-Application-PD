@@ -6,21 +6,21 @@
   
   /* Main content wrapper */
   .main-content {
-    margin-left: 80px; /* Sidebar width */
+    margin-left: 50px; /* Sidebar width */
     display: flex;
-    flex-grow: 1;
+    flex-grow: 0;
     padding: 20px;
     height: 100%;
   }
   
   /* Dataloggers component extended to the left */
   .dataloggers {
-    flex: 2; /* Extend Dataloggers component to take more space */
-    margin-right: 20px; /* Add space between Dataloggers and Map */
+    flex: 1; /* Extend Dataloggers component to take more space */
+    margin-right: 30px; /* Add space between Dataloggers and Map */
   }
   
   /* Map component with fixed width */
   .map-container {
-    flex: 0 0 600px; /* Fixed width for Map */
+    flex: 0 0 1250px; /* Fixed width for Map */
   }
   

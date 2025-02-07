@@ -11,14 +11,11 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-# Path to the input data CSV file
-CSV_FILE_PATH = r'inputdata.csv'
-
-# Load input data from the CSV
-input_data = pd.read_csv(CSV_FILE_PATH)
-
-# Load the machine learning model
+# Load your model and data
+CSV_FILE_PATH = r'inputdata2.csv'
 MODEL_PATH = r'LSTM3.h5'
+
+input_data = pd.read_csv(CSV_FILE_PATH)
 model = tf.keras.models.load_model(MODEL_PATH)
 
 current_index = 0  # Global index for current data simulation
