@@ -1,17 +1,55 @@
 /* Center the model viewer */
 .model-container {
-    width: 50vw !important; /* Set the width to 50% of the viewport */
-    height: 95vh !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: linear-gradient(to bottom, #e0e0e0, #bdbdbd) !important; /* Light gray gradient */
-    overflow: hidden; /* Prevent content from overflowing */
-  }
-  
-  /* Canvas styling */
-  canvas {
-    border-radius: 10px !important;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important; /* Soft shadow */
-  }
-  
+  width: 50vw !important; /* Set the width to 50% of the viewport */
+  height: 90vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(to bottom, #e0e0e0, #bdbdbd) !important; /* Light gray gradient */
+  overflow: hidden; /* Prevent content from overflowing */
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Canvas styling */
+canvas {
+  border-radius: 10px !important;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important; /* Soft shadow */
+}
+
+/* Button container */
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Common button styling */
+.controls button {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: #007bff; /* Blue color */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Button hover effect */
+.controls button:hover {
+  background: #0056b3; /* Darker blue */
+  transform: translateY(-2px);
+}
+
+/* Reset button styling */
+.controls .reset-btn {
+  background: #dc3545; /* Red color */
+}
+
+.controls .reset-btn:hover {
+  background: #a71d2a; /* Darker red */
+}
