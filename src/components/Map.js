@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import gsap from "gsap";
 import "./css/ModalViewer.css";
 
 const ModelViewer = () => {
@@ -10,8 +11,7 @@ const ModelViewer = () => {
   const controlsRef = useRef(null);
   let animationFrameId;
 
-  // Initial Camera Position
-  const initialCameraPosition = { x: 3, y: 10, z: 32 };
+  const initialCameraPosition = { x: -21.77, y: 10.68, z: 9.76 };
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -71,29 +71,25 @@ const ModelViewer = () => {
     };
   }, []);
 
-  const zoomToSensor = (x, y, z) => {
+  const zoomToSensor = (x, y, z, targetX, targetY, targetZ) => {
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(x, y, z);
-      controlsRef.current.target.set(0, 0, 0);
-      controlsRef.current.update();
+      gsap.to(cameraRef.current.position, { x, y, z, duration: 1.5, ease: "power2.inOut" });
+      gsap.to(controlsRef.current.target, { x: targetX, y: targetY, z: targetZ, duration: 1.5, ease: "power2.inOut", onUpdate: () => controlsRef.current.update() });
     }
   };
 
   const resetView = () => {
-    if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(initialCameraPosition.x, initialCameraPosition.y, initialCameraPosition.z);
-      controlsRef.current.target.set(0, 0, 0);
-      controlsRef.current.update();
-    }
+    zoomToSensor(initialCameraPosition.x, initialCameraPosition.y, initialCameraPosition.z, -0.56, -1.01, -8.59);
   };
 
   return (
     <div className="model-wrapper">
       <div ref={containerRef} className="model-container" />
+
       <div className="controls">
-        <button onClick={() => zoomToSensor(2, 5, 3)}>Sensor 1</button>
-        <button onClick={() => zoomToSensor(-2, 1, 5)}>Sensor 2</button>
-        <button onClick={() => zoomToSensor(0, 3, 7)}>Sensor 3</button>
+        <button onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13)}>Sensor 1</button>
+        <button onClick={() => zoomToSensor(11.93, 6.07, 2.57, 5.18, 4.33, 6.81)}>Sensor 2</button>
+        <button onClick={() => zoomToSensor(8.85, 5.36, -10.32, -0.21, 3.93, 1.32)}>Sensor 3</button>
         <button onClick={resetView}>Reset View</button>
       </div>
     </div>
