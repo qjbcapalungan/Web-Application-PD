@@ -1,7 +1,7 @@
 /* Center the model viewer */
 .model-container {
-  width: 95vw !important; /* Set the width to 50% of the viewport */
-  height: 90vh !important;
+  width: 100vw !important; /* Set the width to 50% of the viewport */
+  height: 100vh !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

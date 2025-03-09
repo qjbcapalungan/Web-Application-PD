@@ -16,7 +16,6 @@
   /* Dataloggers component extended to the left */
   .dataloggers {
     flex: 1; /* Extend Dataloggers component to take more space */
-    margin-right: 30px; /* Add space between Dataloggers and Map */
   }
   
   /* Map component with fixed width */
