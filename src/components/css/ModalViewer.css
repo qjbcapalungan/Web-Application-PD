@@ -1,6 +1,6 @@
 /* Center the model viewer */
 .model-container {
-  width: 50vw !important; /* Set the width to 50% of the viewport */
+  width: 95vw !important; /* Set the width to 50% of the viewport */
   height: 90vh !important;
   display: flex !important;
   align-items: center !important;
@@ -9,6 +9,7 @@
   overflow: hidden; /* Prevent content from overflowing */
   border-radius: 10px;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  margin-left: 11px;
 }
 
 /* Canvas styling */
