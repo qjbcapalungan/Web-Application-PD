@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './css/Dataloggers.css';
 import { Link } from 'react-router-dom';
 import dayjs from "dayjs";
+
+
 
 const currentDate = dayjs().format("MMMM D, YYYY");
 
