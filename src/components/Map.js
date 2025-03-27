@@ -4,6 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 import "./css/ModalViewer.css";
+import { io } from "socket.io-client";
 
 const ModelViewer = () => {
   const containerRef = useRef(null);
@@ -40,7 +41,11 @@ const ModelViewer = () => {
     const fetchSensorData = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/sensor-data");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
+        console.log("Fetched sensor data:", data); // Debugging: Log the response
         setSensorValues({
           sensor1: data.sensor1,
           sensor2: data.sensor2,
@@ -54,36 +59,39 @@ const ModelViewer = () => {
     fetchSensorData();
   }, []);
 
-  // Fetch sensor data from the backend
+  // Fetch actual sensor data from the backend
   useEffect(() => {
     const fetchactualSensorData = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/actualsensor-data");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        setSensorValues({
+        setActualSensorValues({
           actualsensor1: data.actualsensor1,
           actualsensor2: data.actualsensor2,
           actualsensor3: data.actualsensor3,
         });
       } catch (error) {
-        console.error("Error fetching sensor data:", error);
+        console.error("Error fetching actual sensor data:", error);
       }
     };
 
     fetchactualSensorData();
   }, []);
 
-  // Fetch valve data from the backend
+  // Correctly set the fetched valve data
   useEffect(() => {
     const fetchValveData = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/valve-data");
         const data = await response.json();
         setValveValues({
-          valve1: data.valve1,
-          valve2: data.valve2,
-          valve3: data.valve3,
-          valve4: data.valve4,
+          valve1: data.valve1 || "Loading...",
+          valve2: data.valve2 || "Loading...",
+          valve3: data.valve3 || "Loading...",
+          valve4: data.valve4 || "Loading...",
         });
       } catch (error) {
         console.error("Error fetching valve data:", error);
@@ -158,17 +166,14 @@ const ModelViewer = () => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         context.font = `${fontsize}px ${fontface}`;
-
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
         context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
         context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
-
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
         context.fillRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
-
         context.fillStyle = "rgba(0, 0, 0, 1.0)";
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
@@ -210,17 +215,14 @@ const ModelViewer = () => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         context.font = `${fontsize}px ${fontface}`;
-
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
         context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
         context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
-
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
         context.fillRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
-
         context.fillStyle = "rgba(0, 0, 0, 1.0)";
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
@@ -233,19 +235,20 @@ const ModelViewer = () => {
         return sprite;
       };
 
-      const valve1Text = createTextSprite(`Valve 1: ${valveValues.valve1 !== null ? valveValues.valve1 : "Loading..."}`);
+      // Dynamically update valve values
+      const valve1Text = createTextSprite(`Valve 1: ${valveValues.valve1 }`);
       valve1Text.position.set(valvePositions.valve1.x, valvePositions.valve1.y, valvePositions.valve1.z);
       valveValueBar.add(valve1Text);
 
-      const valve2Text = createTextSprite(`Valve 2: ${valveValues.valve2 !== null ? valveValues.valve2 : "Loading..."}`);
+      const valve2Text = createTextSprite(`Valve 2: ${valveValues.valve2 }`);
       valve2Text.position.set(valvePositions.valve2.x, valvePositions.valve2.y, valvePositions.valve2.z);
       valveValueBar.add(valve2Text);
 
-      const valve3Text = createTextSprite(`Valve 3: ${valveValues.valve3 !== null ? valveValues.valve3 : "Loading..."}`);
+      const valve3Text = createTextSprite(`Valve 3: ${valveValues.valve3 }`);
       valve3Text.position.set(valvePositions.valve3.x, valvePositions.valve3.y, valvePositions.valve3.z);
       valveValueBar.add(valve3Text);
 
-      const valve4Text = createTextSprite(`Valve 4: ${valveValues.valve4 !== null ? valveValues.valve4 : "Loading..."}`);
+      const valve4Text = createTextSprite(`Valve 4: ${valveValues.valve4}`);
       valve4Text.position.set(valvePositions.valve4.x, valvePositions.valve4.y, valvePositions.valve4.z);
       valveValueBar.add(valve4Text);
 
@@ -273,6 +276,7 @@ const ModelViewer = () => {
       controls.update();
       renderer.render(scene, camera);
     };
+
     animate();
 
     const handleResize = () => {
@@ -280,6 +284,7 @@ const ModelViewer = () => {
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
+
     window.addEventListener("resize", handleResize);
 
     const logCoordinates = (event) => {
@@ -321,6 +326,19 @@ const ModelViewer = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const socket = io("http://localhost:5000"); // Connect to the WebSocket server
+
+    socket.on("valve-update", (updatedValveStates) => {
+      console.log("Received valve-update:", updatedValveStates); // Debugging: Log the received data
+      setValveValues(updatedValveStates); // Update valve values in real-time
+    });
+
+    return () => {
+      socket.disconnect(); // Clean up the WebSocket connection
+    };
+  }, []);
+
   const zoomToSensor = (x, y, z, targetX, targetY, targetZ, sensor) => {
     if (cameraRef.current && controlsRef.current) {
       gsap.to(cameraRef.current.position, { x, y, z, duration: 1.5, ease: "power2.inOut" });
@@ -343,13 +361,12 @@ const ModelViewer = () => {
   return (
     <div className="model-wrapper">
       <div ref={containerRef} className="model-container" />
-
       <div className="controls">
         <div className="control-group">
           <div className="sensor-value-display">
             {sensorValues.sensor1 !== null ? `${actualSensorValues.actualSensor1}°C` : "..."}
           </div>
-          <button 
+          <button
             onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
             className="sensor-btn"
           >
@@ -361,7 +378,7 @@ const ModelViewer = () => {
           <div className="sensor-value-display">
             {sensorValues.sensor2 !== null ? `${actualSensorValues.actualSensor2}°C` : "..."}
           </div>
-          <button 
+          <button
             onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
             className="sensor-btn"
           >
@@ -373,7 +390,7 @@ const ModelViewer = () => {
           <div className="sensor-value-display">
             {sensorValues.sensor3 !== null ? `${actualSensorValues.actualSensor3}°C` : "..."}
           </div>
-          <button 
+          <button
             onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}
             className="sensor-btn"
           >
@@ -383,7 +400,7 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display dummy"></div>
-          <button 
+          <button
             onClick={resetView}
             className="reset-btn"
           >
