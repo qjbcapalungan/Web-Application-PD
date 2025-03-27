@@ -311,7 +311,7 @@ const ModelViewer = () => {
   };
 
   const resetView = () => {
-    zoomToSensor(initialCameraPosition.x, initialCameraPosition.y, initialCameraPosition.z, -0.56, -1.01, -8.59, "reset");
+    zoomToSensor(initialCameraPosition.x, initialCameraPosition.y, initialCameraPosition.z + 3, -3.56, -5.01, -3.59, "reset");
   };
 
   return (
