@@ -167,14 +167,6 @@ const ModelViewer = () => {
       sensor3Text.position.set(sensorPositions.sensor3.x, sensorPositions.sensor3.y, sensorPositions.sensor3.z);
       sensorValueBar.add(sensor3Text);
 
-      // Log the world positions of the sensor texts
-      sensor1Text.getWorldPosition(new THREE.Vector3());
-      console.log(`Sensor 1 world position: x=${sensor1Text.position.x}, y=${sensor1Text.position.y}, z=${sensor1Text.position.z}`);
-      sensor2Text.getWorldPosition(new THREE.Vector3());
-      console.log(`Sensor 2 world position: x=${sensor2Text.position.x}, y=${sensor2Text.position.y}, z=${sensor2Text.position.z}`);
-      sensor3Text.getWorldPosition(new THREE.Vector3());
-      console.log(`Sensor 3 world position: x=${sensor3Text.position.x}, y=${sensor3Text.position.y}, z=${sensor3Text.position.z}`);
-
       scene.add(sensorValueBar);
     };
 
@@ -279,19 +271,12 @@ const ModelViewer = () => {
         const { x, y, z } = intersects[0].point;
         console.log(`Clicked coordinates: x=${x}, y=${y}, z=${z}`);
 
-        // Create a visual indicator at the clicked position
         const geometry = new THREE.SphereGeometry(0.1, 32, 32);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const sphere = new THREE.Mesh(geometry, material);
         sphere.position.set(x, y, z);
         scene.add(sphere);
 
-        // Log the world position of the sphere
-        const worldPosition = new THREE.Vector3();
-        sphere.getWorldPosition(worldPosition);
-        console.log(`World position of indicator: x=${worldPosition.x}, y=${worldPosition.y}, z=${worldPosition.z}`);
-
-        // Remove the indicator after a short delay
         setTimeout(() => {
           scene.remove(sphere);
         }, 2000);
@@ -313,9 +298,14 @@ const ModelViewer = () => {
   const zoomToSensor = (x, y, z, targetX, targetY, targetZ, sensor) => {
     if (cameraRef.current && controlsRef.current) {
       gsap.to(cameraRef.current.position, { x, y, z, duration: 1.5, ease: "power2.inOut" });
-      gsap.to(controlsRef.current.target, { x: targetX, y: targetY, z: targetZ, duration: 1.5, ease: "power2.inOut", onUpdate: () => controlsRef.current.update() });
-
-      // Highlight the selected sensor value
+      gsap.to(controlsRef.current.target, { 
+        x: targetX, 
+        y: targetY, 
+        z: targetZ, 
+        duration: 1.5, 
+        ease: "power2.inOut", 
+        onUpdate: () => controlsRef.current.update() 
+      });
       updateSensorValues(sensor, sensorValues[sensor]);
     }
   };
@@ -329,10 +319,51 @@ const ModelViewer = () => {
       <div ref={containerRef} className="model-container" />
 
       <div className="controls">
-        <button onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}>Sensor 1</button>
-        <button onClick={() => zoomToSensor(11.93, 6.07, 2.57, 5.18, 4.33, 6.81, "sensor2")}>Sensor 2</button>
-        <button onClick={() => zoomToSensor(8.85, 5.36, -10.32, -0.21, 3.93, 1.32, "sensor3")}>Sensor 3</button>
-        <button onClick={resetView}>Reset View</button>
+        <div className="control-group">
+          <div className="sensor-value-display">
+            {sensorValues.sensor1 !== null ? `${sensorValues.sensor1}°C` : "..."}
+          </div>
+          <button 
+            onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
+            className="sensor-btn"
+          >
+            <i className="fas fa-thermometer-half"></i> Sensor 1
+          </button>
+        </div>
+        
+        <div className="control-group">
+          <div className="sensor-value-display">
+            {sensorValues.sensor2 !== null ? `${sensorValues.sensor2}°C` : "..."}
+          </div>
+          <button 
+            onClick={() => zoomToSensor(11.93, 6.07, 2.57, 5.18, 4.33, 6.81, "sensor2")}
+            className="sensor-btn"
+          >
+            <i className="fas fa-thermometer-half"></i> Sensor 2
+          </button>
+        </div>
+        
+        <div className="control-group">
+          <div className="sensor-value-display">
+            {sensorValues.sensor3 !== null ? `${sensorValues.sensor3}°C` : "..."}
+          </div>
+          <button 
+            onClick={() => zoomToSensor(8.85, 5.36, -10.32, -0.21, 3.93, 1.32, "sensor3")}
+            className="sensor-btn"
+          >
+            <i className="fas fa-thermometer-half"></i> Sensor 3
+          </button>
+        </div>
+        
+        <div className="control-group">
+          <div className="sensor-value-display dummy"></div>
+          <button 
+            onClick={resetView}
+            className="reset-btn"
+          >
+            <i className="fas fa-home"></i> Reset View
+          </button>
+        </div>
       </div>
     </div>
   );
