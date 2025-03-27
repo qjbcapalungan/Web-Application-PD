@@ -336,7 +336,7 @@ const ModelViewer = () => {
             {sensorValues.sensor2 !== null ? `${sensorValues.sensor2}°C` : "..."}
           </div>
           <button 
-            onClick={() => zoomToSensor(11.93, 6.07, 2.57, 5.18, 4.33, 6.81, "sensor2")}
+            onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
             className="sensor-btn"
           >
             <i className="fas fa-thermometer-half"></i> Sensor 2
@@ -348,7 +348,7 @@ const ModelViewer = () => {
             {sensorValues.sensor3 !== null ? `${sensorValues.sensor3}°C` : "..."}
           </div>
           <button 
-            onClick={() => zoomToSensor(8.85, 5.36, -10.32, -0.21, 3.93, 1.32, "sensor3")}
+            onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}
             className="sensor-btn"
           >
             <i className="fas fa-thermometer-half"></i> Sensor 3

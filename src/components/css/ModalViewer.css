@@ -1,167 +1,191 @@
-/* Center the model viewer */
+/* Model Viewer Container */
 .model-wrapper {
   position: relative;
   width: 100%;
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 20px 0 0 0;
+  box-sizing: border-box;
+  background: #f5f5f5;
+  overflow: hidden;
 }
 
 .model-container {
-  width: 95vw !important;
-  height: 90vh !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: linear-gradient(to bottom, #e0e0e0, #bdbdbd) !important;
+  width: min(99vw, 1500px);
+  height: min(90vh, 850px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #e0e0e0, #c5c5c5);
   overflow: hidden;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-  margin-left: 45px;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
-/* Controls container */
+/* Controls Container */
 .controls {
   position: absolute;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 20px;
+  gap: 25px;
   z-index: 100;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: 90%;
+  align-items: center;
+  width: 95%;
+  max-width: 1400px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Button Groups */
 .control-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  flex: 1 0 auto;
+  min-width: 140px;
 }
 
-.sensor-value-display {
-  width: 100%;
-  min-height: 30px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 4px 8px;
-  text-align: center;
-}
-
-.sensor-value-display.dummy {
-  visibility: hidden;
-}
-
-/* Base button style */
-.controls button {
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 600;
+/* Button Styles */
+.sensor-btn,
+.reset-btn {
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   color: white;
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 120px;
+  min-width: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Sensor buttons */
-.controls button:not(.reset-btn) {
-  background: linear-gradient(135deg, #4a6bff, #3a56d4);
-  border-left: 3px solid rgba(255, 255, 255, 0.5);
-  border-top: 3px solid rgba(255, 255, 255, 0.5);
-}
-
-.controls button:not(.reset-btn):hover {
-  background: linear-gradient(135deg, #3a56d4, #2a46b4);
+.sensor-btn:hover,
+.reset-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Reset button */
-.controls .reset-btn {
-  background: linear-gradient(135deg, #ff4757, #e84142);
-  border-left: 3px solid rgba(255, 255, 255, 0.5);
-  border-top: 3px solid rgba(255, 255, 255, 0.5);
-}
-
-.controls .reset-btn:hover {
-  background: linear-gradient(135deg, #e84142, #d13132);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-}
-
-/* Active state for buttons */
-.controls button:active {
+.sensor-btn:active,
+.reset-btn:active {
   transform: translateY(1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Font Awesome icons */
-.controls button i {
-  font-size: 16px;
+.sensor-btn::after,
+.reset-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-/* Responsive adjustments */
+.sensor-btn:hover::after,
+.reset-btn:hover::after {
+  opacity: 1;
+}
+
+/* Individual Button Colors */
+.sensor-btn:nth-child(1) {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.sensor-btn:nth-child(2) {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.sensor-btn:nth-child(3) {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+/* Reset Button */
+.reset-btn {
+  background: linear-gradient(135deg, #ff6347, #e55337);
+  order: 999;
+  margin-left: auto;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .model-container {
+    height: min(94vh, 850px);
+  }
+  .controls {
+    bottom: 25px;
+  }
+}
+
 @media (max-width: 768px) {
+  .model-wrapper {
+    padding-top: 10px;
+    align-items: center;
+  }
+  .model-container {
+    width: 100vw;
+    height: 96vh;
+    border-radius: 0;
+  }
   .controls {
     bottom: 15px;
-    gap: 15px;
+    width: 96%;
   }
-  
-  .control-group {
-    min-width: 100px;
-  }
-  
-  .sensor-value-display {
+  .sensor-btn,
+  .reset-btn {
+    padding: 12px 18px;
     font-size: 14px;
-    min-height: 26px;
-  }
-  
-  .controls button {
-    padding: 10px 15px;
-    font-size: 12px;
-    min-width: 100px;
-  }
-  
-  .model-container {
-    margin-left: 0;
-    width: 100vw !important;
-    height: 100vh !important;
-    border-radius: 0;
+    min-width: 120px;
   }
 }
 
 @media (max-width: 480px) {
-  .controls {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-    padding: 0 10px;
+  .model-wrapper {
+    padding-top: 5px;
   }
-  
+  .model-container {
+    height: 97vh;
+  }
+  .controls {
+    bottom: 10px;
+    gap: 10px;
+  }
   .control-group {
     width: 45%;
+    min-width: auto;
   }
-  
-  .controls button {
-    width: 100%;
+  .reset-btn {
+    width: 90%;
+    margin: 5px auto;
+  }
+  .sensor-btn,
+  .reset-btn {
+    padding: 10px 15px;
+    font-size: 13px;
+    min-width: 110px;
   }
 }
