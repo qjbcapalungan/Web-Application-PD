@@ -27,6 +27,13 @@ const ModelViewer = () => {
     valve3: null,
     valve4: null,
   });
+  
+  // State to store actual sensor values
+  const [actualSensorValues, setActualSensorValues] = useState({
+    actualsensor1: null,
+    actualsensor2: null,
+    actualsensor3: null,
+  });
 
   // Fetch sensor data from the backend
   useEffect(() => {
@@ -45,6 +52,25 @@ const ModelViewer = () => {
     };
 
     fetchSensorData();
+  }, []);
+
+  // Fetch sensor data from the backend
+  useEffect(() => {
+    const fetchactualSensorData = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/actualsensor-data");
+        const data = await response.json();
+        setSensorValues({
+          actualsensor1: data.actualsensor1,
+          actualsensor2: data.actualsensor2,
+          actualsensor3: data.actualsensor3,
+        });
+      } catch (error) {
+        console.error("Error fetching sensor data:", error);
+      }
+    };
+
+    fetchactualSensorData();
   }, []);
 
   // Fetch valve data from the backend
@@ -321,7 +347,7 @@ const ModelViewer = () => {
       <div className="controls">
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor1 !== null ? `${sensorValues.sensor1}°C` : "..."}
+            {sensorValues.sensor1 !== null ? `${actualSensorValues.actualSensor1}°C` : "..."}
           </div>
           <button 
             onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
@@ -333,7 +359,7 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor2 !== null ? `${sensorValues.sensor2}°C` : "..."}
+            {sensorValues.sensor2 !== null ? `${actualSensorValues.actualSensor2}°C` : "..."}
           </div>
           <button 
             onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
@@ -345,7 +371,7 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor3 !== null ? `${sensorValues.sensor3}°C` : "..."}
+            {sensorValues.sensor3 !== null ? `${actualSensorValues.actualSensor3}°C` : "..."}
           </div>
           <button 
             onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}
