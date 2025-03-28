@@ -10,6 +10,14 @@ const ModelViewer = () => {
   const containerRef = useRef(null);
   const cameraRef = useRef(null);
   const controlsRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const valveTextRefs = useRef({
+    valve1: null,
+    valve2: null,
+    valve3: null,
+    valve4: null
+  });
   let animationFrameId;
 
   const initialCameraPosition = { x: -21.77, y: 10.68, z: 9.76 };
@@ -23,10 +31,10 @@ const ModelViewer = () => {
 
   // State to store valve values
   const [valveValues, setValveValues] = useState({
-    valve1: null,
-    valve2: null,
-    valve3: null,
-    valve4: null,
+    valve1: "Closed",
+    valve2: "Closed",
+    valve3: "Closed",
+    valve4: "Closed"
   });
   
   // State to store actual sensor values
@@ -45,7 +53,7 @@ const ModelViewer = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Fetched sensor data:", data); // Debugging: Log the response
+        console.log("Fetched sensor data:", data);
         setSensorValues({
           sensor1: data.sensor1,
           sensor2: data.sensor2,
@@ -81,50 +89,80 @@ const ModelViewer = () => {
     fetchactualSensorData();
   }, []);
 
-  // Correctly set the fetched valve data
+  // Socket.IO connection for valve updates
   useEffect(() => {
-    const fetchValveData = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/valve-data");
-        const data = await response.json();
-        setValveValues({
-          valve1: data.valve1 || "Loading...",
-          valve2: data.valve2 || "Loading...",
-          valve3: data.valve3 || "Loading...",
-          valve4: data.valve4 || "Loading...",
-        });
-      } catch (error) {
-        console.error("Error fetching valve data:", error);
-      }
-    };
+    const socket = io("http://localhost:5000");
 
-    fetchValveData();
+    socket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err);
+    });
+
+    socket.on("valve-update", (updatedValveStates) => {
+      console.log("Received valve-update:", updatedValveStates);
+      setValveValues(prev => ({
+        ...prev,
+        ...updatedValveStates
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
-  // Function to update sensor values
-  const updateSensorValues = (sensor, value) => {
-    setSensorValues((prevValues) => ({
-      ...prevValues,
-      [sensor]: value,
-    }));
-  };
+  // Update valve text sprites when valveValues change
+  useEffect(() => {
+    if (!sceneRef.current || !rendererRef.current) return;
 
-  // Function to update valve values
-  const updateValveValues = (valve, value) => {
-    setValveValues((prevValues) => ({
-      ...prevValues,
-      [valve]: value,
-    }));
-  };
+    const updateValveTextSprites = () => {
+      Object.keys(valveTextRefs.current).forEach(valveKey => {
+        const ref = valveTextRefs.current[valveKey];
+        if (ref) {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          const fontsize = 18;
+          const borderThickness = 4;
+          const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey]}`;
+
+          context.font = `${fontsize}px Arial`;
+          const metrics = context.measureText(message);
+          const textWidth = metrics.width;
+
+          canvas.width = textWidth + borderThickness * 2;
+          canvas.height = fontsize * 1.4 + borderThickness * 2;
+
+          context.fillStyle = `rgba(255,255,255,1)`;
+          context.strokeStyle = `rgba(0,0,0,1)`;
+          context.lineWidth = borderThickness;
+          context.strokeRect(0, 0, canvas.width, canvas.height);
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.fillStyle = "rgba(0, 0, 0, 1.0)";
+          context.font = `${fontsize}px Arial`;
+          context.fillText(message, borderThickness, fontsize + borderThickness);
+
+          ref.texture.image = canvas;
+          ref.texture.needsUpdate = true;
+        }
+      });
+    };
+
+    updateValveTextSprites();
+  }, [valveValues]);
 
   useEffect(() => {
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(initialCameraPosition.x, initialCameraPosition.y, initialCameraPosition.z);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    rendererRef.current = renderer;
     containerRef.current.appendChild(renderer.domElement);
 
     const light = new THREE.AmbientLight(0xffffff, 1);
@@ -205,25 +243,26 @@ const ModelViewer = () => {
     const createValveValueBar = (valvePositions) => {
       const valveValueBar = new THREE.Group();
 
-      const createTextSprite = (message, parameters = {}) => {
-        const fontface = parameters.fontface || "Arial";
-        const fontsize = parameters.fontsize || 18;
-        const borderThickness = parameters.borderThickness || 4;
-        const borderColor = parameters.borderColor || { r: 0, g: 0, b: 0, a: 1.0 };
-        const backgroundColor = parameters.backgroundColor || { r: 255, g: 255, b: 255, a: 1.0 };
-
+      const createTextSprite = (message) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        context.font = `${fontsize}px ${fontface}`;
+        const fontsize = 18;
+        const borderThickness = 4;
+
+        context.font = `${fontsize}px Arial`;
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
-        context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
-        context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
+        canvas.width = textWidth + borderThickness * 2;
+        canvas.height = fontsize * 1.4 + borderThickness * 2;
+
+        context.fillStyle = `rgba(255,255,255,1)`;
+        context.strokeStyle = `rgba(0,0,0,1)`;
         context.lineWidth = borderThickness;
-        context.strokeRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
-        context.fillRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
+        context.strokeRect(0, 0, canvas.width, canvas.height);
+        context.fillRect(0, 0, canvas.width, canvas.height);
         context.fillStyle = "rgba(0, 0, 0, 1.0)";
+        context.font = `${fontsize}px Arial`;
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
         const texture = new THREE.Texture(canvas);
@@ -232,25 +271,32 @@ const ModelViewer = () => {
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
         sprite.scale.set(5, 2.5, 1.0);
-        return sprite;
+        return { sprite, texture };
       };
 
-      // Dynamically update valve values
-      const valve1Text = createTextSprite(`Valve 1: ${valveValues.valve1 }`);
-      valve1Text.position.set(valvePositions.valve1.x, valvePositions.valve1.y, valvePositions.valve1.z);
-      valveValueBar.add(valve1Text);
+      // Valve 1
+      const valve1 = createTextSprite(`Valve 1: ${valveValues.valve1}`);
+      valve1.sprite.position.set(valvePositions.valve1.x, valvePositions.valve1.y, valvePositions.valve1.z);
+      valveTextRefs.current.valve1 = { sprite: valve1.sprite, texture: valve1.texture };
+      valveValueBar.add(valve1.sprite);
 
-      const valve2Text = createTextSprite(`Valve 2: ${valveValues.valve2 }`);
-      valve2Text.position.set(valvePositions.valve2.x, valvePositions.valve2.y, valvePositions.valve2.z);
-      valveValueBar.add(valve2Text);
+      // Valve 2
+      const valve2 = createTextSprite(`Valve 2: ${valveValues.valve2}`);
+      valve2.sprite.position.set(valvePositions.valve2.x, valvePositions.valve2.y, valvePositions.valve2.z);
+      valveTextRefs.current.valve2 = { sprite: valve2.sprite, texture: valve2.texture };
+      valveValueBar.add(valve2.sprite);
 
-      const valve3Text = createTextSprite(`Valve 3: ${valveValues.valve3 }`);
-      valve3Text.position.set(valvePositions.valve3.x, valvePositions.valve3.y, valvePositions.valve3.z);
-      valveValueBar.add(valve3Text);
+      // Valve 3
+      const valve3 = createTextSprite(`Valve 3: ${valveValues.valve3}`);
+      valve3.sprite.position.set(valvePositions.valve3.x, valvePositions.valve3.y, valvePositions.valve3.z);
+      valveTextRefs.current.valve3 = { sprite: valve3.sprite, texture: valve3.texture };
+      valveValueBar.add(valve3.sprite);
 
-      const valve4Text = createTextSprite(`Valve 4: ${valveValues.valve4}`);
-      valve4Text.position.set(valvePositions.valve4.x, valvePositions.valve4.y, valvePositions.valve4.z);
-      valveValueBar.add(valve4Text);
+      // Valve 4
+      const valve4 = createTextSprite(`Valve 4: ${valveValues.valve4}`);
+      valve4.sprite.position.set(valvePositions.valve4.x, valvePositions.valve4.y, valvePositions.valve4.z);
+      valveTextRefs.current.valve4 = { sprite: valve4.sprite, texture: valve4.texture };
+      valveValueBar.add(valve4.sprite);
 
       scene.add(valveValueBar);
     };
@@ -326,19 +372,6 @@ const ModelViewer = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const socket = io("http://localhost:5000"); // Connect to the WebSocket server
-
-    socket.on("valve-update", (updatedValveStates) => {
-      console.log("Received valve-update:", updatedValveStates); // Debugging: Log the received data
-      setValveValues(updatedValveStates); // Update valve values in real-time
-    });
-
-    return () => {
-      socket.disconnect(); // Clean up the WebSocket connection
-    };
-  }, []);
-
   const zoomToSensor = (x, y, z, targetX, targetY, targetZ, sensor) => {
     if (cameraRef.current && controlsRef.current) {
       gsap.to(cameraRef.current.position, { x, y, z, duration: 1.5, ease: "power2.inOut" });
@@ -350,7 +383,6 @@ const ModelViewer = () => {
         ease: "power2.inOut", 
         onUpdate: () => controlsRef.current.update() 
       });
-      updateSensorValues(sensor, sensorValues[sensor]);
     }
   };
 
@@ -364,7 +396,7 @@ const ModelViewer = () => {
       <div className="controls">
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor1 !== null ? `${actualSensorValues.actualSensor1}°C` : "..."}
+            {sensorValues.sensor1 !== null ? `${actualSensorValues.actualsensor1}°C` : "..."}
           </div>
           <button
             onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
@@ -376,7 +408,7 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor2 !== null ? `${actualSensorValues.actualSensor2}°C` : "..."}
+            {sensorValues.sensor2 !== null ? `${actualSensorValues.actualsensor2}°C` : "..."}
           </div>
           <button
             onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
@@ -388,7 +420,7 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor3 !== null ? `${actualSensorValues.actualSensor3}°C` : "..."}
+            {sensorValues.sensor3 !== null ? `${actualSensorValues.actualsensor3}°C` : "..."}
           </div>
           <button
             onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}
