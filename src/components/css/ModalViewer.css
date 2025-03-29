@@ -18,7 +18,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #e0e0e0, #c5c5c5);
+  background: 
+  radial-gradient(circle at center, #f0f0f0 0%, #d0d0d0 100%);
   overflow: hidden;
   border-radius: clamp(8px, 1vw, 12px) clamp(8px, 1vw, 12px) 0 0; /* Fluid border radius */
   box-shadow: 0px clamp(4px, 1vw, 8px) clamp(10px, 2vw, 20px) rgba(0, 0, 0, 0.2);
@@ -42,10 +43,10 @@
   width: 95%;
   max-width: min(95vw, 1400px);
   padding: clamp(10px, 1.5vh, 15px);
-  background: rgba(216, 216, 216, 0.945);
+  background: rgba(255, 255, 255, 0.945);
   backdrop-filter: blur(8px);
   border-radius: clamp(10px, 1.5vw, 16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(17, 17, 17, 0);
 }
 
 /* Button Groups */
@@ -69,7 +70,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 clamp(3px, 1vw, 4px) clamp(5px, 1.5vw, 8px) rgba(0, 0, 0, 0.15);
-  color: rgb(0, 0, 0);
+  color: rgb(255, 255, 255);
   text-transform: uppercase;
   letter-spacing: 1px;
   min-width: min(140px, 30vw);
