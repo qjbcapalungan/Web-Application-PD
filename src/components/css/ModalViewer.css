@@ -42,7 +42,7 @@
   width: 95%;
   max-width: min(95vw, 1400px);
   padding: clamp(10px, 1.5vh, 15px);
-  background: rgba(53, 133, 170, 0.945);
+  background: rgba(216, 216, 216, 0.945);
   backdrop-filter: blur(8px);
   border-radius: clamp(10px, 1.5vw, 16px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -79,6 +79,27 @@
   gap: clamp(5px, 1vw, 10px);
   position: relative;
   overflow: hidden;
+}
+
+/* Individual Button Colors */
+.sensor-btn:nth-child(1) {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.sensor-btn:nth-child(2) {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.sensor-btn:nth-child(3) {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+/* Reset Button */
+.reset-btn {
+  background: linear-gradient(135deg, #ff6347, #e55337);
+  order: 999;
+  margin-left: auto;
+  margin-right: 100px;
 }
 
 /* Responsive Adjustments */
