@@ -31,7 +31,7 @@ const ModelViewer = () => {
 
   // State to store valve values
   const [valveValues, setValveValues] = useState({
-    valve1: "Closed",
+    valve1: "Open",
     valve2: "Closed",
     valve3: "Closed",
     valve4: "Closed"
@@ -127,6 +127,11 @@ const ModelViewer = () => {
           const fontsize = 18;
           const borderThickness = 4;
           const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey]}`;
+          
+          // Determine border color based on valve state
+          const borderColor = valveValues[valveKey] === "Open" ? 
+            "rgba(0, 180, 0, 1)" : // Darker green for open
+            "rgba(200, 0, 0, 1)";   // Darker red for closed
 
           context.font = `${fontsize}px Arial`;
           const metrics = context.measureText(message);
@@ -135,12 +140,17 @@ const ModelViewer = () => {
           canvas.width = textWidth + borderThickness * 2;
           canvas.height = fontsize * 1.4 + borderThickness * 2;
 
-          context.fillStyle = `rgba(255,255,255,1)`;
-          context.strokeStyle = `rgba(0,0,0,1)`;
+          // Draw solid white background first
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Then draw the colored border
+          context.strokeStyle = borderColor;
           context.lineWidth = borderThickness;
           context.strokeRect(0, 0, canvas.width, canvas.height);
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.fillStyle = "rgba(0, 0, 0, 1.0)";
+
+          // Finally draw the text
+          context.fillStyle = "rgba(0, 0, 0, 1)";
           context.font = `${fontsize}px Arial`;
           context.fillText(message, borderThickness, fontsize + borderThickness);
 
@@ -195,8 +205,9 @@ const ModelViewer = () => {
       const sensorValueBar = new THREE.Group();
 
       const createTextSprite = (message, parameters = {}) => {
-        const fontface = parameters.fontface || "Arial";
-        const fontsize = parameters.fontsize || 18;
+        const fontface = parameters.fontface || "Roboto Mono";
+        const fontsize = parameters.fontsize || 12 ;
+        
         const borderThickness = parameters.borderThickness || 4;
         const borderColor = parameters.borderColor || { r: 0, g: 0, b: 0, a: 1.0 };
         const backgroundColor = parameters.backgroundColor || { r: 255, g: 255, b: 255, a: 1.0 };
@@ -207,11 +218,14 @@ const ModelViewer = () => {
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
+        canvas.width = textWidth + borderThickness * 3;
+        canvas.height = fontsize * 1.4 + borderThickness * 2;
+
         context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
         context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
         context.lineWidth = borderThickness;
-        context.strokeRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
-        context.fillRect(0, 0, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
+        context.strokeRect(0, 0, canvas.width, canvas.height);
+        context.fillRect(0, 0, canvas.width, canvas.height);
         context.fillStyle = "rgba(0, 0, 0, 1.0)";
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
@@ -220,7 +234,7 @@ const ModelViewer = () => {
 
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(5, 2.5, 1.0);
+        sprite.scale.set(4, 1, 1);
         return sprite;
       };
 
@@ -243,12 +257,16 @@ const ModelViewer = () => {
     const createValveValueBar = (valvePositions) => {
       const valveValueBar = new THREE.Group();
 
-      const createTextSprite = (message) => {
+      const createTextSprite = (message, valveState) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        const fontsize = 40;
-        const borderThickness = 6;
-        const padding = 10;
+        const fontsize = 30;
+        const borderThickness = 10;
+
+        // Determine border color based on valve state
+        const borderColor = valveState === "Open" ? 
+          "rgba(0, 180, 0, 1)" : // Darker green for open
+          "rgba(200, 0, 0, 1)";   // Darker red for closed
 
         context.font = `${fontsize}px Arial`;
         const metrics = context.measureText(message);
@@ -257,12 +275,17 @@ const ModelViewer = () => {
         canvas.width = textWidth + borderThickness * 2;
         canvas.height = fontsize * 1.5 + borderThickness * 2;
 
-        context.fillStyle = "rgba(255, 255, 255, 0.7)";
-        context.strokeStyle = `rgba(0,0,0,1)`;
+        // Draw solid white background first
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Then draw the colored border
+        context.strokeStyle = borderColor;
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, canvas.width, canvas.height);
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "rgba(0, 0, 0, 1.0)";
+
+        // Finally draw the text
+        context.fillStyle = "rgba(0, 0, 0, 1)";
         context.font = `${fontsize}px Arial`;
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
@@ -276,25 +299,25 @@ const ModelViewer = () => {
       };
 
       // Valve 1
-      const valve1 = createTextSprite(`Valve 1: ${valveValues.valve1}`);
+      const valve1 = createTextSprite(`Valve 1: ${valveValues.valve1}`, valveValues.valve1);
       valve1.sprite.position.set(valvePositions.valve1.x, valvePositions.valve1.y, valvePositions.valve1.z);
       valveTextRefs.current.valve1 = { sprite: valve1.sprite, texture: valve1.texture };
       valveValueBar.add(valve1.sprite);
 
       // Valve 2
-      const valve2 = createTextSprite(`Valve 2: ${valveValues.valve2}`);
+      const valve2 = createTextSprite(`Valve 2: ${valveValues.valve2}`, valveValues.valve2);
       valve2.sprite.position.set(valvePositions.valve2.x, valvePositions.valve2.y, valvePositions.valve2.z);
       valveTextRefs.current.valve2 = { sprite: valve2.sprite, texture: valve2.texture };
       valveValueBar.add(valve2.sprite);
 
       // Valve 3
-      const valve3 = createTextSprite(`Valve 3: ${valveValues.valve3}`);
+      const valve3 = createTextSprite(`Valve 3: ${valveValues.valve3}`, valveValues.valve3);
       valve3.sprite.position.set(valvePositions.valve3.x, valvePositions.valve3.y, valvePositions.valve3.z);
       valveTextRefs.current.valve3 = { sprite: valve3.sprite, texture: valve3.texture };
       valveValueBar.add(valve3.sprite);
 
       // Valve 4
-      const valve4 = createTextSprite(`Valve 4: ${valveValues.valve4}`);
+      const valve4 = createTextSprite(`Valve 4: ${valveValues.valve4}`, valveValues.valve4);
       valve4.sprite.position.set(valvePositions.valve4.x, valvePositions.valve4.y, valvePositions.valve4.z);
       valveTextRefs.current.valve4 = { sprite: valve4.sprite, texture: valve4.texture };
       valveValueBar.add(valve4.sprite);
@@ -303,16 +326,16 @@ const ModelViewer = () => {
     };
 
     const sensorPositions = {
-      sensor1: { x: -15.8, y: 6.3, z: -1.0102 },
-      sensor2: { x: 8.57, y: 6.57, z: 4.47 },
-      sensor3: { x: 6.68, y: 6.59, z: -7.44 },
+      sensor1: { x: -15.8, y: 6.3 + 0.8, z: -1.0102 },
+      sensor2: { x: 8.57, y: 6.57 + 0.8, z: 4.47 },
+      sensor3: { x: 6.68, y: 6.59 + 0.8, z: -7.44 },
     };
 
     const valvePositions = {
       valve1: { x: -3.75, y: 4.82 + 1, z: 4.57 },
       valve2: { x: -3.79, y: 4.81 + 1 , z: -7.39},
-      valve3: { x: 18.57, y: -0.72 + 1, z: 4.55},
-      valve4: { x: 18.58, y: -0.72 + 1, z: -7.55},
+      valve3: { x: 18.57, y: -0.72 + 2, z: 4.55 + 1.3},
+      valve4: { x: 18.58, y: -0.72 + 2, z: -7.55 - 1.3},
     };
 
     createSensorValueBar(sensorPositions);
