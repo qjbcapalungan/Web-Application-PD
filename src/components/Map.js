@@ -246,7 +246,7 @@ const ModelViewer = () => {
       const createTextSprite = (message) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        const fontsize = 18;
+        const fontsize = 28;
         const borderThickness = 4;
 
         context.font = `${fontsize}px Arial`;
@@ -270,7 +270,7 @@ const ModelViewer = () => {
 
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(5, 2.5, 1.0);
+        sprite.scale.set(2, 1, 0.5);
         return { sprite, texture };
       };
 
@@ -308,10 +308,10 @@ const ModelViewer = () => {
     };
 
     const valvePositions = {
-      valve1: { x: -3.75, y: 4.82, z: 4.57 },
-      valve2: { x: -3.79, y: 4.81, z: -7.39},
-      valve3: { x: 18.57, y: -0.72, z: 4.55},
-      valve4: { x: 18.58, y: -0.72, z: -7.55},
+      valve1: { x: -3.75, y: 4.82 + 1, z: 4.57 },
+      valve2: { x: -3.79, y: 4.81 + 1 , z: -7.39},
+      valve3: { x: 18.57, y: -0.72 + 1, z: 4.55},
+      valve4: { x: 18.58, y: -0.72 + 1, z: -7.55},
     };
 
     createSensorValueBar(sensorPositions);
