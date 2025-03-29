@@ -246,17 +246,18 @@ const ModelViewer = () => {
       const createTextSprite = (message) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        const fontsize = 28;
-        const borderThickness = 4;
+        const fontsize = 40;
+        const borderThickness = 6;
+        const padding = 10;
 
         context.font = `${fontsize}px Arial`;
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
         canvas.width = textWidth + borderThickness * 2;
-        canvas.height = fontsize * 1.4 + borderThickness * 2;
+        canvas.height = fontsize * 1.5 + borderThickness * 2;
 
-        context.fillStyle = `rgba(255,255,255,1)`;
+        context.fillStyle = "rgba(255, 255, 255, 0.7)";
         context.strokeStyle = `rgba(0,0,0,1)`;
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, canvas.width, canvas.height);
@@ -270,7 +271,7 @@ const ModelViewer = () => {
 
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(2, 1, 0.5);
+        sprite.scale.set(3, 1.5, 1);
         return { sprite, texture };
       };
 
