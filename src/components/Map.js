@@ -18,6 +18,11 @@ const ModelViewer = () => {
     valve3: null,
     valve4: null
   });
+  const sensorTextRefs = useRef({
+    sensor1: null,
+    sensor2: null,
+    sensor3: null
+  });
   let animationFrameId;
 
   const initialCameraPosition = { x: -21.77, y: 10.68, z: 9.76 };
@@ -163,6 +168,61 @@ const ModelViewer = () => {
     updateValveTextSprites();
   }, [valveValues]);
 
+  // Update sensor text sprites when sensorValues change
+  useEffect(() => {
+    if (!sceneRef.current || !rendererRef.current) return;
+
+    const updateSensorTextSprites = () => {
+      Object.keys(sensorTextRefs.current).forEach(sensorKey => {
+        const ref = sensorTextRefs.current[sensorKey];
+        if (ref) {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          const fontsize = 18;
+          const borderThickness = 4;
+          const sensorValue = sensorValues[sensorKey];
+          const message = `Sensor ${sensorKey.slice(-1)}: ${sensorValue !== null ? sensorValue : "Loading..."}`;
+          
+          // Determine border color based on sensor value
+          let borderColor;
+          if (sensorValue === null) {
+            borderColor = "rgba(100, 100, 100, 1)"; // Gray for loading/undefined
+          } else {
+            borderColor = sensorValue < 7 ? 
+              "rgba(200, 0, 0, 1)" : // Red for below 7
+              "rgba(0, 180, 0, 1)";  // Green for 7 or above
+          }
+
+          context.font = `${fontsize}px Arial`;
+          const metrics = context.measureText(message);
+          const textWidth = metrics.width;
+
+          canvas.width = textWidth + borderThickness * 2;
+          canvas.height = fontsize * 1.4 + borderThickness * 2;
+
+          // Draw solid white background first
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Then draw the colored border
+          context.strokeStyle = borderColor;
+          context.lineWidth = borderThickness;
+          context.strokeRect(0, 0, canvas.width, canvas.height);
+
+          // Finally draw the text
+          context.fillStyle = "rgba(0, 0, 0, 1)";
+          context.font = `${fontsize}px Arial`;
+          context.fillText(message, borderThickness, fontsize + borderThickness);
+
+          ref.texture.image = canvas;
+          ref.texture.needsUpdate = true;
+        }
+      });
+    };
+
+    updateSensorTextSprites();
+  }, [sensorValues]);
+
   useEffect(() => {
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -204,29 +264,41 @@ const ModelViewer = () => {
     const createSensorValueBar = (sensorPositions) => {
       const sensorValueBar = new THREE.Group();
 
-      const createTextSprite = (message, parameters = {}) => {
-        const fontface = parameters.fontface || "Roboto Mono";
-        const fontsize = parameters.fontsize || 12 ;
-        
-        const borderThickness = parameters.borderThickness || 4;
-        const borderColor = parameters.borderColor || { r: 0, g: 0, b: 0, a: 1.0 };
-        const backgroundColor = parameters.backgroundColor || { r: 255, g: 255, b: 255, a: 1.0 };
-
+      const createTextSprite = (message, sensorValue, sensorKey) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        context.font = `${fontsize}px ${fontface}`;
+        const fontsize = 18;
+        const borderThickness = 4;
+        
+        // Determine border color based on sensor value
+        let borderColor;
+        if (sensorValue === null) {
+          borderColor = "rgba(100, 100, 100, 1)"; // Gray for loading/undefined
+        } else {
+          borderColor = sensorValue < 7 ? 
+            "rgba(200, 0, 0, 1)" : // Red for below 7
+            "rgba(0, 180, 0, 1)";  // Green for 7 or above
+        }
+
+        context.font = `${fontsize}px Arial`;
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
-        canvas.width = textWidth + borderThickness * 3;
+        canvas.width = textWidth + borderThickness * 2;
         canvas.height = fontsize * 1.4 + borderThickness * 2;
 
-        context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
-        context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
+        // Draw solid white background first
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Then draw the colored border
+        context.strokeStyle = borderColor;
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, canvas.width, canvas.height);
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "rgba(0, 0, 0, 1.0)";
+
+        // Finally draw the text
+        context.fillStyle = "rgba(0, 0, 0, 1)";
+        context.font = `${fontsize}px Arial`;
         context.fillText(message, borderThickness, fontsize + borderThickness);
 
         const texture = new THREE.Texture(canvas);
@@ -235,20 +307,38 @@ const ModelViewer = () => {
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
         sprite.scale.set(4, 1, 1);
-        return sprite;
+        return { sprite, texture };
       };
 
-      const sensor1Text = createTextSprite(`Sensor 1: ${sensorValues.sensor1 !== null ? sensorValues.sensor1 : "Loading..."}`);
-      sensor1Text.position.set(sensorPositions.sensor1.x, sensorPositions.sensor1.y, sensorPositions.sensor1.z);
-      sensorValueBar.add(sensor1Text);
+      // Sensor 1
+      const sensor1 = createTextSprite(
+        `Sensor 1: ${sensorValues.sensor1 !== null ? sensorValues.sensor1 : "Loading..."}`,
+        sensorValues.sensor1,
+        "sensor1"
+      );
+      sensor1.sprite.position.set(sensorPositions.sensor1.x, sensorPositions.sensor1.y, sensorPositions.sensor1.z);
+      sensorTextRefs.current.sensor1 = { sprite: sensor1.sprite, texture: sensor1.texture };
+      sensorValueBar.add(sensor1.sprite);
 
-      const sensor2Text = createTextSprite(`Sensor 2: ${sensorValues.sensor2 !== null ? sensorValues.sensor2 : "Loading..."}`);
-      sensor2Text.position.set(sensorPositions.sensor2.x, sensorPositions.sensor2.y, sensorPositions.sensor2.z);
-      sensorValueBar.add(sensor2Text);
+      // Sensor 2
+      const sensor2 = createTextSprite(
+        `Sensor 2: ${sensorValues.sensor2 !== null ? sensorValues.sensor2 : "Loading..."}`,
+        sensorValues.sensor2,
+        "sensor2"
+      );
+      sensor2.sprite.position.set(sensorPositions.sensor2.x, sensorPositions.sensor2.y, sensorPositions.sensor2.z);
+      sensorTextRefs.current.sensor2 = { sprite: sensor2.sprite, texture: sensor2.texture };
+      sensorValueBar.add(sensor2.sprite);
 
-      const sensor3Text = createTextSprite(`Sensor 3: ${sensorValues.sensor3 !== null ? sensorValues.sensor3 : "Loading..."}`);
-      sensor3Text.position.set(sensorPositions.sensor3.x, sensorPositions.sensor3.y, sensorPositions.sensor3.z);
-      sensorValueBar.add(sensor3Text);
+      // Sensor 3
+      const sensor3 = createTextSprite(
+        `Sensor 3: ${sensorValues.sensor3 !== null ? sensorValues.sensor3 : "Loading..."}`,
+        sensorValues.sensor3,
+        "sensor3"
+      );
+      sensor3.sprite.position.set(sensorPositions.sensor3.x, sensorPositions.sensor3.y, sensorPositions.sensor3.z);
+      sensorTextRefs.current.sensor3 = { sprite: sensor3.sprite, texture: sensor3.texture };
+      sensorValueBar.add(sensor3.sprite);
 
       scene.add(sensorValueBar);
     };
