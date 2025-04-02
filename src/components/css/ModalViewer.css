@@ -2,26 +2,27 @@
 .model-wrapper {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: min(100vh, 100dvh); /* Use dynamic viewport height */
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px 0 0 0;
+  padding: clamp(5px, 2vh, 20px) 0 0 0; /* Fluid padding */
   box-sizing: border-box;
-  background: #f5f5f5;
+  background: #fff;
   overflow: hidden;
 }
 
 .model-container {
   width: min(99vw, 1500px);
-  height: min(90vh, 850px);
+  height: min(88vh, 850px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #e0e0e0, #c5c5c5);
+  background: 
+  radial-gradient(circle at center, #f0f0f0 0%, #d0d0d0 100%);
   overflow: hidden;
-  border-radius: 12px 12px 0 0;
-  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+  border-radius: clamp(8px, 1vw, 12px) clamp(8px, 1vw, 12px) 0 0; /* Fluid border radius */
+  box-shadow: 0px clamp(4px, 1vw, 8px) clamp(10px, 2vw, 20px) rgba(0, 0, 0, 0.2);
   margin: 0 auto;
   border: 1px solid rgba(0, 0, 0, 0.1);
   position: relative;
@@ -30,22 +31,22 @@
 /* Controls Container */
 .controls {
   position: absolute;
-  bottom: 30px;
+  bottom: clamp(10px, 3vh, 30px); /* Fluid bottom spacing */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 25px;
+  gap: clamp(10px, 1.5vw, 25px); 
   z-index: 100;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   width: 95%;
-  max-width: 1400px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.15);
+  max-width: min(95vw, 1400px);
+  padding: clamp(10px, 1.5vh, 15px);
+  background: rgba(255, 255, 255, 0.945);
   backdrop-filter: blur(8px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: clamp(10px, 1.5vw, 16px);
+  border: 1px solid rgba(17, 17, 17, 0);
 }
 
 /* Button Groups */
@@ -53,62 +54,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: clamp(5px, 1vh, 8px);
   flex: 1 0 auto;
-  min-width: 140px;
+  min-width: min(140px, 25vw);
 }
 
 /* Button Styles */
 .sensor-btn,
 .reset-btn {
-  padding: 14px 24px;
-  font-size: 15px;
+  padding: clamp(10px, 1.5vh, 14px) clamp(15px, 2vw, 24px);
+  font-size: clamp(13px, 1.5vw, 15px);
   font-weight: 700;
   border: none;
-  border-radius: 10px;
+  border-radius: clamp(8px, 1vw, 10px);
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  color: white;
+  box-shadow: 0 clamp(3px, 1vw, 4px) clamp(5px, 1.5vw, 8px) rgba(0, 0, 0, 0.15);
+  color: rgb(255, 255, 255);
   text-transform: uppercase;
   letter-spacing: 1px;
-  min-width: 140px;
+  min-width: min(140px, 30vw);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: clamp(5px, 1vw, 10px);
   position: relative;
   overflow: hidden;
-}
-
-.sensor-btn:hover,
-.reset-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-}
-
-.sensor-btn:active,
-.reset-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.sensor-btn::after,
-.reset-btn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.sensor-btn:hover::after,
-.reset-btn:hover::after {
-  opacity: 1;
 }
 
 /* Individual Button Colors */
@@ -129,6 +100,7 @@
   background: linear-gradient(135deg, #ff6347, #e55337);
   order: 999;
   margin-left: auto;
+  margin-right: 100px;
 }
 
 /* Responsive Adjustments */
@@ -136,43 +108,32 @@
   .model-container {
     height: min(94vh, 850px);
   }
-  .controls {
-    bottom: 25px;
-  }
 }
 
 @media (max-width: 768px) {
   .model-wrapper {
-    padding-top: 10px;
+    padding-top: clamp(5px, 1vh, 10px);
     align-items: center;
   }
   .model-container {
     width: 100vw;
-    height: 96vh;
+    height: min(96vh, 100dvh);
     border-radius: 0;
   }
   .controls {
-    bottom: 15px;
     width: 96%;
-  }
-  .sensor-btn,
-  .reset-btn {
-    padding: 12px 18px;
-    font-size: 14px;
-    min-width: 120px;
   }
 }
 
 @media (max-width: 480px) {
   .model-wrapper {
-    padding-top: 5px;
+    padding-top: clamp(2px, 0.5vh, 5px);
   }
   .model-container {
-    height: 97vh;
+    height: min(97vh, 100dvh);
   }
   .controls {
-    bottom: 10px;
-    gap: 10px;
+    gap: clamp(5px, 1vh, 10px);
   }
   .control-group {
     width: 45%;
@@ -180,12 +141,6 @@
   }
   .reset-btn {
     width: 90%;
-    margin: 5px auto;
-  }
-  .sensor-btn,
-  .reset-btn {
-    padding: 10px 15px;
-    font-size: 13px;
-    min-width: 110px;
+    margin: clamp(3px, 0.5vh, 5px) auto;
   }
 }
