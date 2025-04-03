@@ -7,91 +7,112 @@ from flask import Flask, send_file, jsonify
 from flask_cors import CORS
 import tensorflow as tf
 import numpy as np
+from pymongo import MongoClient
 
 app = Flask(__name__)
 CORS(app)
 
-# Load your model and data
-CSV_FILE_PATH = r'inputdata2.csv'
-MODEL_PATH = r'LSTM3.h5'
+# MongoDB setup
+MONGO_URI = "mongodb+srv://DenverMateo:admin123@Cluster0.jschv.mongodb.net/Cluster0?retryWrites=true&w=majority"
+DB_NAME = "Cluster0"
+COLLECTION_NAME = "Cluster0"  # Replace with the appropriate collection name
 
-input_data = pd.read_csv(CSV_FILE_PATH)
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+collection = db[COLLECTION_NAME]
+
+# Load the LSTM model
+MODEL_PATH = r'LSTM3.h5'
 model = tf.keras.models.load_model(MODEL_PATH)
 
-current_index = 0  # Global index for current data simulation
 
-
-@app.route('/current_psi', methods=['GET'])
-def get_current_psi():
+@app.route('/forecasted_psi', methods=['GET'])
+def get_forecasted_psi():
     """
-    Simulate fetching the current PSI value and increment the global index.
+    Fetch the latest 15 PSI values from MongoDB for each collection and forecast the next 15 values.
     """
-    global current_index
     try:
-        if current_index >= len(input_data):
-            current_index = 0  # Reset index if it exceeds data length
+        # Fetch the latest 15 PSI values from each collection
+        sim1_data = list(db["sim1_data"].find().sort("timestamp", -1).limit(15))
+        sim2_data = list(db["sim2_data"].find().sort("timestamp", -1).limit(15))
+        sim3_data = list(db["sim3_data"].find().sort("timestamp", -1).limit(15))
 
-        current_psi_value = input_data['psi'].iloc[current_index]
-        current_index += 1  # Increment the index
+        # Reverse to maintain chronological order
+        sim1_data.reverse()
+        sim2_data.reverse()
+        sim3_data.reverse()
+
+        # Extract the PSI values
+        sim1_psi_values = [doc['psi_values'] for doc in sim1_data]
+        sim2_psi_values = [doc['psi_values'] for doc in sim2_data]
+        sim3_psi_values = [doc['psi_values'] for doc in sim3_data]
+
+        # Ensure enough data is available for forecasting
+        if len(sim1_psi_values) < 15 or len(sim2_psi_values) < 15 or len(sim3_psi_values) < 15:
+            return jsonify({'error': 'Not enough data for forecasting'}), 400
+
+        # Prepare the input for the LSTM model
+        sim1_input = np.array(sim1_psi_values).reshape(1, 15, 1)
+        sim2_input = np.array(sim2_psi_values).reshape(1, 15, 1)
+        sim3_input = np.array(sim3_psi_values).reshape(1, 15, 1)
+
+        # Forecast the next 15 PSI values for each sensor
+        sim1_forecasted = model.predict(sim1_input).flatten().tolist()
+        sim2_forecasted = model.predict(sim2_input).flatten().tolist()
+        sim3_forecasted = model.predict(sim3_input).flatten().tolist()
 
         # Debug logs
-        print(f"DEBUG: Current Index: {current_index}, Current PSI: {current_psi_value}")
-        return jsonify({'current_psi': [current_psi_value]})
+        print(f"DEBUG: Sim1 Latest PSI Values: {sim1_psi_values}")
+        print(f"DEBUG: Sim1 Forecasted PSI Values: {sim1_forecasted}")
+        print(f"DEBUG: Sim2 Latest PSI Values: {sim2_psi_values}")
+        print(f"DEBUG: Sim2 Forecasted PSI Values: {sim2_forecasted}")
+        print(f"DEBUG: Sim3 Latest PSI Values: {sim3_psi_values}")
+        print(f"DEBUG: Sim3 Forecasted PSI Values: {sim3_forecasted}")
+
+        # Return forecasted values in a format compatible with the frontend
+        return jsonify({
+            'sensor1': sim1_forecasted,
+            'sensor2': sim2_forecasted,
+            'sensor3': sim3_forecasted
+        })
     except Exception as e:
-        print(f"ERROR in /current_psi: {e}")
-        return jsonify({'error': str(e)}), 400
+        print(f"ERROR in /forecasted_psi: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/real_time_chart', methods=['GET'])
 def real_time_chart():
-    global current_index
+    """
+    Generate a real-time chart comparing actual and forecasted PSI values.
+    """
     try:
-        print(f"DEBUG: Current Index: {current_index}, Total Data Points: {len(input_data)}")
+        # Fetch the latest 15 PSI values from MongoDB
+        latest_data = list(collection.find().sort("timestamp", -1).limit(15))
+        latest_data.reverse()  # Reverse to maintain chronological order
 
-        # Ensure enough data for prediction
-        if current_index < 5:  # Ensure at least 5 data points are available
-            print("DEBUG: Not enough data for prediction")
-            return jsonify({'error': 'Not enough data for prediction'}), 400
+        # Extract the PSI values
+        psi_values = [doc['psi_values'] for doc in latest_data]
+        if len(psi_values) < 15:
+            return jsonify({'error': 'Not enough data for forecasting'}), 400
 
-        # Separate actual and predicted values
-        actual_data = []  # To store actual values
-        predicted_data = []  # To store predicted values
-        x_actual = []  # Indices for actual values
-        x_predicted = []  # Indices for predicted values
+        # Prepare the input for the LSTM model
+        input_data = np.array(psi_values).reshape(1, 15, 1)
 
-        # Start building the sequence
-        current_sequence = input_data['psi'].iloc[:current_index].tolist()
-
-        for i in range(len(current_sequence)):
-            # Add the actual value
-            actual_value = current_sequence[i]
-            actual_data.append(actual_value)
-            x_actual.append(i)
-
-            # If enough data is available for prediction
-            if i >= 4:
-                recent_data = np.array(current_sequence[i-4:i+1]).reshape(1, 5, 1)
-                predictions = model.predict(recent_data).flatten().tolist()
-
-                # Add predictions to the predicted_data list
-                predicted_data.extend(predictions)
-                x_predicted.extend(range(i + 1, i + 1 + len(predictions)))
-
-        print(f"DEBUG: Actual Data: {actual_data}")
-        print(f"DEBUG: Predicted Data: {predicted_data}")
+        # Forecast the next 15 PSI values
+        forecasted_values = model.predict(input_data).flatten().tolist()
 
         # Generate the plot
         plt.figure(figsize=(10, 6))
-        plt.plot(x_actual, actual_data, label="Actual", color='blue', marker='o', linewidth=2)
-        plt.plot(x_predicted, predicted_data, label="Predicted (5 Steps Ahead)", color='red', linestyle='--', marker='x', linewidth=2)
+        plt.plot(range(15), psi_values, label="Actual", color='blue', marker='o', linewidth=2)
+        plt.plot(range(15, 30), forecasted_values, label="Forecasted (Next 15 Minutes)", color='red', linestyle='--', marker='x', linewidth=2)
 
         # Adjust y-axis dynamically
-        y_min = min(min(actual_data), min(predicted_data))
-        y_max = max(max(actual_data), max(predicted_data))
+        y_min = min(min(psi_values), min(forecasted_values))
+        y_max = max(max(psi_values), max(forecasted_values))
         plt.ylim(y_min - 0.1 * abs(y_max - y_min), y_max + 0.1 * abs(y_max - y_min))
 
         # Add labels, title, and legend
-        plt.title("Actual vs Predicted PSI (5 Steps Ahead)")
+        plt.title("Actual vs Forecasted PSI (Next 15 Minutes)")
         plt.xlabel("Time Steps")
         plt.ylabel("PSI Value")
         plt.legend()
@@ -107,6 +128,7 @@ def real_time_chart():
     except Exception as e:
         print(f"ERROR in /real_time_chart: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5001, debug=True)
