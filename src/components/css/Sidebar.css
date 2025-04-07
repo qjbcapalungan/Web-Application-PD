@@ -10,7 +10,7 @@
   left: 0;
   top: 0;
   height: 100vh;
-  width: 60px; /* Collapsed width */
+  width: 60px;
   background-color: #04364a;
   display: flex;
   flex-direction: column;
@@ -20,7 +20,7 @@
 }
 
 .sidebar.expanded {
-  width: 100px; /* Expanded width */
+  width: 100px;
 }
 
 .sidebar-toggle {
@@ -33,52 +33,158 @@
 .sidebar-items {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center items horizontally */
-  justify-content: start; /* Align items to the top */
+  align-items: center;
+  justify-content: start;
   width: 100%;
   flex: 1;
 }
 
 .sidebar-item {
   display: flex;
-  flex-direction: column; /* Stack icon and text vertically */
-  justify-content: center; /* Center both vertically */
-  align-items: center; /* Center both horizontally */
-  width: 100%; /* Take full width for consistent alignment */
-  height: 80px; /* Set a larger height for spacing */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 80px;
   color: white;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .sidebar-item:hover {
-  background-color: #444;
+  background-color: #176B87;
 }
 
 .sidebar-icon {
-  font-size: 24px; /* Adjust the size of the icon */
-  margin-bottom: 5px; /* Add spacing between icon and text */
+  font-size: 24px;
+  margin-bottom: 5px;
 }
 
 .sidebar-item span {
-  font-size: 14px; /* Adjust the size of the text */
-  text-align: center; /* Center the text */
+  font-size: 14px;
+  text-align: center;
 }
 
-/* Profile Panel (Beside Sidebar) */
+/* Dashboard Panel */
+.dashboard-panel {
+  position: fixed;
+  left: 60px;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  background-color: #ffffff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  z-index: 1100;
+  transition: all 0.3s ease;
+}
+
+.sidebar.expanded ~ .dashboard-panel {
+  left: 100px;
+}
+
+.dashboard-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: #dddddd;
+  color: white;
+}
+
+.dashboard-panel-body {
+  padding: 15px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+.sensor-card {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 4px solid #3498db;
+  transition: transform 0.2s;
+}
+
+.sensor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sensor-card.normal {
+  border-left-color: #2ecc71;
+}
+
+.sensor-card.warning {
+  border-left-color: #f39c12;
+}
+
+.sensor-card.critical {
+  border-left-color: #e74c3c;
+}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sensor-header h4 {
+  margin: 0;
+  color: #04364a;
+}
+
+.sensor-details {
+  font-size: 14px;
+}
+
+.sensor-details p {
+  margin: 5px 0;
+  color: #333;
+  display: flex;
+}
+
+.sensor-details strong {
+  color: #04364a;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.status-badge.normal {
+  background-color: #2ecc71;
+}
+
+.status-badge.warning {
+  background-color: #f39c12;
+}
+
+.status-badge.critical {
+  background-color: #e74c3c;
+}
+
+/* Profile Panel */
 .profile-panel {
   position: fixed;
   top: 0;
-  left: 60px; /* Align next to collapsed sidebar */
+  left: 60px;
   height: 100vh;
   width: 300px;
   background-color: #ffffff;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   z-index: 1100;
-  transition: transform 0.3s ease-in-out;
 }
 
-.sidebar.expanded + .profile-panel {
+.sidebar.expanded ~ .profile-panel {
   left: 100px;
 }
 
@@ -101,6 +207,11 @@
   font-size: 20px;
   color: #333;
   cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-icon:hover {
+  color: #e74c3c;
 }
 
 .profile-panel-body {
@@ -114,7 +225,7 @@
 .avatar-large {
   width: 80px;
   height: 80px;
-  background-color: 04364a;
+  background-color: #DAFFFB;
   color: #04364a;
   font-size: 32px;
   font-weight: bold;
@@ -123,7 +234,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
-  border: 2px solid black;
+  border: 2px solid #04364a;
 }
 
 .username {
@@ -135,7 +246,7 @@
 
 .logout-button {
   padding: 10px 20px;
-  background-color: #f44336;
+  background-color: #e74c3c;
   color: white;
   border: none;
   border-radius: 5px;
@@ -147,7 +258,6 @@
 .logout-button:hover {
   background-color: #c12c2c;
 }
-
 
 /* Modal Overlay */
 .modal-overlay {
@@ -186,14 +296,17 @@
   margin: 0;
 }
 
-.close-icon {
-  cursor: pointer;
-  font-size: 20px;
-  color: #333;
-}
-
 /* Modal Body */
 .modal-body p {
   font-size: 16px;
   color: #333;
+}
+
+.modal-body ul {
+  text-align: left;
+  padding-left: 20px;
+}
+
+.modal-body li {
+  margin-bottom: 8px;
 }
