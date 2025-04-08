@@ -34,12 +34,12 @@ const ModelViewer = () => {
     sensor3: null,
   });
 
-  // State to store valve values
+  // State to store valve values (connected to MQTT broker)
   const [valveValues, setValveValues] = useState({
-    valve1: "Open",
-    valve2: "Closed",
-    valve3: "Closed",
-    valve4: "Closed"
+    valve1: null,
+    valve2: null,
+    valve3: null,
+    valve4: null
   });
   
   // State to store actual sensor values
@@ -47,6 +47,13 @@ const ModelViewer = () => {
     actualsensor1: null,
     actualsensor2: null,
     actualsensor3: null,
+  });
+
+  // State to store the current index for each sensor
+  const [currentIndexes, setCurrentIndexes] = useState({
+    actualsensor1: 0,
+    actualsensor2: 0,
+    actualsensor3: 0,
   });
 
   // Fetch sensor data from the backend
@@ -94,6 +101,19 @@ const ModelViewer = () => {
     fetchactualSensorData();
   }, []);
 
+  // Cycle through PSI values every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndexes((prevIndexes) => ({
+        actualsensor1: (prevIndexes.actualsensor1 + 1) % (actualSensorValues.actualsensor1?.length || 1),
+        actualsensor2: (prevIndexes.actualsensor2 + 1) % (actualSensorValues.actualsensor2?.length || 1),
+        actualsensor3: (prevIndexes.actualsensor3 + 1) % (actualSensorValues.actualsensor3?.length || 1),
+      }));
+    }, 60000); // 60000ms = 1 minute
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, [actualSensorValues]);
+
   // Socket.IO connection for valve updates
   useEffect(() => {
     const socket = io("http://localhost:5000");
@@ -131,7 +151,7 @@ const ModelViewer = () => {
           const context = canvas.getContext("2d");
           const fontsize = 18;
           const borderThickness = 4;
-          const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey]}`;
+          const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey] !== null ? valveValues[valveKey] : "Loading..."}`;
           
           // Determine border color based on valve state
           const borderColor = valveValues[valveKey] === "Open" ? 
@@ -243,7 +263,7 @@ const ModelViewer = () => {
     scene.add(directionalLight);
 
     const loader = new GLTFLoader();
-    loader.load("/jemas2.glb", (gltf) => {
+    loader.load("/silano3.glb", (gltf) => {
       const model = gltf.scene;
       model.scale.set(0.5, 0.5, 0.5);
       model.position.set(2.8, -1, 0);
@@ -510,7 +530,9 @@ const ModelViewer = () => {
       <div className="controls">
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor1 !== null ? `${actualSensorValues.actualsensor1}°C` : "..."}
+            {actualSensorValues.actualsensor1
+            ? `${actualSensorValues.actualsensor1[currentIndexes.actualsensor1]} PSI` // Add "PSI" after the value
+            : "Loading..."}
           </div>
           <button
             onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
@@ -522,7 +544,9 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor2 !== null ? `${actualSensorValues.actualsensor2}°C` : "..."}
+          {actualSensorValues.actualsensor2
+          ? `${actualSensorValues.actualsensor2[currentIndexes.actualsensor2]} PSI` // Add "PSI" after the value
+          : "Loading..."}
           </div>
           <button
             onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
@@ -534,7 +558,9 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-            {sensorValues.sensor3 !== null ? `${actualSensorValues.actualsensor3}°C` : "..."}
+          {actualSensorValues.actualsensor3
+        ? `${actualSensorValues.actualsensor3[currentIndexes.actualsensor3]} PSI` // Add "PSI" after the value
+        : "Loading..."}
           </div>
           <button
             onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}

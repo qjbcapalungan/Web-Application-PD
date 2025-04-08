@@ -8,6 +8,7 @@ from flask_cors import CORS
 import tensorflow as tf
 import numpy as np
 from pymongo import MongoClient
+import csv  # Add this import for CSV handling
 
 app = Flask(__name__)
 CORS(app)
@@ -69,11 +70,28 @@ def get_forecasted_psi():
         print(f"DEBUG: Sim3 Latest PSI Values: {sim3_psi_values}")
         print(f"DEBUG: Sim3 Forecasted PSI Values: {sim3_forecasted}")
 
+        # Compile the fetched PSI values into a CSV file
+        csv_file_path = "psi_values.csv"
+        with open(csv_file_path, mode='w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(["Timestamp", "Sensor", "PSI Value"])  # Header row
+
+            for doc in sim1_data:
+                csv_writer.writerow([doc['timestamp'], "Sensor1", doc['psi_values']])
+            for doc in sim2_data:
+                csv_writer.writerow([doc['timestamp'], "Sensor2", doc['psi_values']])
+            for doc in sim3_data:
+                csv_writer.writerow([doc['timestamp'], "Sensor3", doc['psi_values']])
+
+        # Debug log for CSV creation
+        print(f"DEBUG: PSI values compiled into {csv_file_path}")
+
         # Return forecasted values in a format compatible with the frontend
         return jsonify({
             'sensor1': sim1_forecasted,
             'sensor2': sim2_forecasted,
-            'sensor3': sim3_forecasted
+            'sensor3': sim3_forecasted,
+            'csv_file': csv_file_path  # Include CSV file path in the response
         })
     except Exception as e:
         print(f"ERROR in /forecasted_psi: {e}")

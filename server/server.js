@@ -30,19 +30,19 @@ MongoClient.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true 
     console.error("Failed to connect to MongoDB:", err);
   });
 
-// // MQTT client setup
-// const mqttClient = mqtt.connect("mqtt://192.168.100.234"); // Updated to use Mosquitto broker
+// MQTT client setup
+const mqttClient = mqtt.connect("mqtt://192.168.100.234"); // Updated to use Mosquitto broker
 
-// mqttClient.on("connect", () => {
-//   console.log("Connected to MQTT broker");
-//   mqttClient.subscribe("switch/state", (err) => { // Updated topic
-//     if (err) {
-//       console.error("Failed to subscribe to topic:", err);
-//     } else {
-//       console.log("Subscribed to topic: switch/state");
-//     }
-//   });
-// });
+mqttClient.on("connect", () => {
+  console.log("Connected to MQTT broker");
+  mqttClient.subscribe("switch/state", (err) => { // Updated topic
+    if (err) {
+      console.error("Failed to subscribe to topic:", err);
+    } else {
+      console.log("Subscribed to topic: switch/state");
+    }
+  });
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -54,38 +54,38 @@ const io = new Server(server, {
   },
 });
 
-// io.on("connection", (socket) => {
-//   console.log("A client connected");
-//   socket.emit("valve-update", { ...valveStates }); // Send the initial valve states to the client
-// });
+io.on("connection", (socket) => {
+  console.log("A client connected");
+  socket.emit("valve-update", { ...valveStates }); // Send the initial valve states to the client
+});
 
-// mqttClient.on("message", (topic, message) => {
-//   if (topic === "switch/state") {
-//     const msg = message.toString();
-//     console.log(`Received MQTT message: ${msg}`); // Debugging: Log the received message
+mqttClient.on("message", (topic, message) => {
+  if (topic === "switch/state") {
+    const msg = message.toString();
+    console.log(`Received MQTT message: ${msg}`); // Debugging: Log the received message
 
-//     const match = msg.match(/Switch (\d+): (ON|OFF)/);
-//     if (match) {
-//       const switchNumber = parseInt(match[1], 10);
-//       const state = match[2];
-//       if (switchNumber >= 1 && switchNumber <= 4) {
-//         valveStates[`valve${switchNumber}`] = state === "ON" ? "Open" : "Closed";
-//         console.log(`Updated valve${switchNumber} to ${valveStates[`valve${switchNumber}`]}`); // Debugging: Log the updated state
-//         io.emit("valve-update", { ...valveStates }); // Emit the updated state to the frontend
-//       }
-//     } else {
-//       console.error("MQTT message format is invalid:", msg); // Debugging: Log invalid messages
-//     }
-//   }
-// });
+    const match = msg.match(/Switch (\d+): (ON|OFF)/);
+    if (match) {
+      const switchNumber = parseInt(match[1], 10);
+      const state = match[2];
+      if (switchNumber >= 1 && switchNumber <= 4) {
+        valveStates[`valve${switchNumber}`] = state === "ON" ? "Open" : "Closed";
+        console.log(`Updated valve${switchNumber} to ${valveStates[`valve${switchNumber}`]}`); // Debugging: Log the updated state
+        io.emit("valve-update", { ...valveStates }); // Emit the updated state to the frontend
+      }
+    } else {
+      console.error("MQTT message format is invalid:", msg); // Debugging: Log invalid messages
+    }
+  }
+});
 
 // Add CORS middleware to allow frontend to fetch data
 app.use(cors());
 
-// // API endpoint to fetch valve data
-// app.get("/api/valve-data", (req, res) => {
-//   res.json(valveStates);
-// });
+// API endpoint to fetch valve data
+app.get("/api/valve-data", (req, res) => {
+  res.json(valveStates);
+});
 
 // API endpoint to fetch actual sensor data
 app.get("/api/actualsensor-data", async (req, res) => {

@@ -2,30 +2,53 @@ import React, { useState, useEffect } from "react";
 import "./css/Sidebar.css";
 import { FaBars, FaTachometerAlt, FaQuestionCircle, FaUser, FaTimes, FaChartLine } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // Import axios for API calls
 
 function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [sensorData, setSensorData] = useState([
-    { id: 1, forecast: "Normal", pressure: "7 psi", timestamp: new Date() },
-    { id: 2, forecast: "Warning", pressure: "7 psi", timestamp: new Date() },
-    { id: 3, forecast: "Critical", pressure: "7 psi", timestamp: new Date() }
-  ]);
+  const [sensorData, setSensorData] = useState([]);
   const navigate = useNavigate();
 
   // Update sensor data periodically
   useEffect(() => {
     if (isDashboardOpen) {
-      const interval = setInterval(() => {
-        setSensorData(prevData => 
-          prevData.map(sensor => ({
-            ...sensor,
-            timestamp: new Date()
-          }))
-        );
-      }, 1000);
+      const fetchSensorData = async () => {
+        try {
+          const response = await axios.get("http://localhost:5000/api/actualsensor-data");
+          const actualSensorData = response.data;
+
+          const filteredSensorData = [
+            {
+              id: 1,
+              forecast: actualSensorData.actualsensor1 < 7 ? "Critical" : null,
+              pressure: actualSensorData.actualsensor1 < 7 ? `${actualSensorData.actualsensor1} psi` : null,
+              timestamp: actualSensorData.actualsensor1 < 7 ? new Date() : null, // Replace with actual timestamp from MongoDB if available
+            },
+            {
+              id: 2,
+              forecast: actualSensorData.actualsensor2 < 7 ? "Critical" : null,
+              pressure: actualSensorData.actualsensor2 < 7 ? `${actualSensorData.actualsensor2} psi` : null,
+              timestamp: actualSensorData.actualsensor2 < 7 ? new Date() : null, // Replace with actual timestamp from MongoDB if available
+            },
+            {
+              id: 3,
+              forecast: actualSensorData.actualsensor3 < 7 ? "Critical" : null,
+              pressure: actualSensorData.actualsensor3 < 7 ? `${actualSensorData.actualsensor3} psi` : null,
+              timestamp: actualSensorData.actualsensor3 < 7 ? new Date() : null, // Replace with actual timestamp from MongoDB if available
+            },
+          ].filter(sensor => sensor.forecast !== null); // Only include sensors with "Critical" forecast
+
+          setSensorData(filteredSensorData);
+        } catch (error) {
+          console.error("Error fetching actual sensor data:", error);
+        }
+      };
+
+      fetchSensorData();
+      const interval = setInterval(fetchSensorData, 1000); // Fetch data every second
 
       return () => clearInterval(interval);
     }
@@ -102,7 +125,7 @@ function Sidebar() {
                 <div className="sensor-details">
                   <p><strong>Forecast:</strong> {sensor.forecast} pressure detected</p>
                   <p><strong>Actual Pressure:</strong> {sensor.pressure}</p>
-                  <p><strong>Time:</strong> {sensor.timestamp.toLocaleTimeString()}</p>
+                  <p><strong>Time:</strong> {sensor.timestamp?.toLocaleTimeString()}</p>
                 </div>
               </div>
             ))}
