@@ -57,11 +57,19 @@ const ModelViewer = () => {
   });
 
   // State to store the current index for each sensor
-  const [currentIndexes, setCurrentIndexes] = useState({
-    actualsensor1: 0,
-    actualsensor2: 0,
-    actualsensor3: 0,
+  const [currentIndexes, setCurrentIndexes] = useState(() => {
+    const savedIndexes = localStorage.getItem('sensorIndexes');
+    return savedIndexes ? JSON.parse(savedIndexes) : {
+      actualsensor1: 0,
+      actualsensor2: 0,
+      actualsensor3: 0,
+    };
   });
+
+  // Save indexes to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('sensorIndexes', JSON.stringify(currentIndexes));
+  }, [currentIndexes]);
 
   // State to store sensor values timestamps
   const [sensorTimestamps, setSensorTimestamps] = useState({

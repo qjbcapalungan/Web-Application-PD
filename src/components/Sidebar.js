@@ -15,10 +15,13 @@ function Sidebar() {
     sensor2: [],
     sensor3: []
   });
-  const [currentSensorIndexes, setCurrentSensorIndexes] = useState({
-    sensor1: 0,
-    sensor2: 0,
-    sensor3: 0
+  const [currentSensorIndexes, setCurrentSensorIndexes] = useState(() => {
+    const savedIndexes = localStorage.getItem('sensorIndexes');
+    return savedIndexes ? JSON.parse(savedIndexes) : {
+      sensor1: 0,
+      sensor2: 0,
+      sensor3: 0
+    };
   });
   const [error, setError] = useState(null);
   const [faultHistory, setFaultHistory] = useState([]);
@@ -32,6 +35,10 @@ function Sidebar() {
     sensor2: false,
     sensor3: false
   });
+
+  useEffect(() => {
+    localStorage.setItem('sensorIndexes', JSON.stringify(currentSensorIndexes));
+  }, [currentSensorIndexes]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'No timestamp available';
