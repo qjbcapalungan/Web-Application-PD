@@ -70,12 +70,14 @@
   position: fixed;
   left: 60px;
   top: 0;
-  width: 300px;
+  width: min(400px, 90vw);
   height: 100vh;
   background-color: #ffffff;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   z-index: 1100;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.expanded ~ .dashboard-panel {
@@ -94,8 +96,23 @@
 
 .dashboard-panel-body {
   padding: 15px;
-  max-height: calc(100vh - 60px);
+  flex: 1;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #04364a #f0f0f0;
+}
+
+.dashboard-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-panel-body::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.dashboard-panel-body::-webkit-scrollbar-thumb {
+  background-color: #04364a;
+  border-radius: 4px;
 }
 
 .sensor-card {
@@ -105,6 +122,8 @@
   margin-bottom: 15px;
   border-left: 4px solid #3498db;
   transition: transform 0.2s;
+  max-width: 100%;
+  min-width: 250px;
 }
 
 .sensor-card:hover {
@@ -124,6 +143,15 @@
   border-left-color: #e74c3c;
 }
 
+.sensor-card.unavailable {
+  border-color: #888888;
+}
+
+.sensor-card.new-data {
+  transition: background-color 0.3s ease;
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
 .sensor-header {
   display: flex;
   justify-content: space-between;
@@ -138,6 +166,10 @@
 
 .sensor-details {
   font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  word-break: break-word;
 }
 
 .sensor-details p {
@@ -150,6 +182,14 @@
   color: #04364a;
   min-width: 120px;
   display: inline-block;
+}
+
+.sensor-details p:last-child {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
 }
 
 .status-badge {
@@ -170,6 +210,11 @@
 
 .status-badge.critical {
   background-color: #e74c3c;
+}
+
+.status-badge.unavailable {
+  background-color: #888888;
+  color: white;
 }
 
 /* Profile Panel */
@@ -309,4 +354,124 @@
 
 .modal-body li {
   margin-bottom: 8px;
+}
+
+/* Error Notification Bar */
+.error-notification-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 70px;
+  right: 20px;
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: #991b1b;
+  z-index: 2000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-notification-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.error-notification-details {
+  font-size: 14px;
+}
+
+.error-notification-close {
+  cursor: pointer;
+  padding: 4px;
+  color: #991b1b;
+}
+
+/* Fault History */
+.fault-history {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #ddd;
+  max-height: 40vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #04364a #f0f0f0;
+}
+
+.fault-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fault-history::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.fault-history::-webkit-scrollbar-thumb {
+  background-color: #04364a;
+  border-radius: 4px;
+}
+
+.fault-history h4 {
+  margin-bottom: 15px;
+  color: #04364a;
+}
+
+.fault-record {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fault-record.critical {
+  border-left: 4px solid #e74c3c;
+}
+
+.fault-record.warning {
+  border-left: 4px solid #f39c12;
+}
+
+.fault-record p {
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+.fault-record strong {
+  color: #04364a;
+  display: inline-block;
+  min-width: 60px;
+}
+
+@media screen and (max-width: 768px) {
+  .dashboard-panel {
+    width: min(350px, 85vw);
+  }
+
+  .sensor-details strong {
+    min-width: 100px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .dashboard-panel {
+    width: min(300px, 80vw);
+  }
+
+  .sensor-details strong {
+    min-width: 90px;
+    font-size: 12px;
+  }
+
+  .sensor-details p {
+    font-size: 12px;
+  }
 }

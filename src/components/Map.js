@@ -42,11 +42,18 @@ const ModelViewer = () => {
     valve4: null
   });
   
-  // State to store actual sensor values
+  // State to store current displayed actual sensor values
   const [actualSensorValues, setActualSensorValues] = useState({
     actualsensor1: null,
     actualsensor2: null,
     actualsensor3: null,
+  });
+
+  // State to store all actual sensor data arrays
+  const [actualSensorData, setActualSensorData] = useState({
+    actualsensor1: [],
+    actualsensor2: [],
+    actualsensor3: [],
   });
 
   // State to store the current index for each sensor
@@ -56,63 +63,167 @@ const ModelViewer = () => {
     actualsensor3: 0,
   });
 
+  // State to store sensor values timestamps
+  const [sensorTimestamps, setSensorTimestamps] = useState({
+    actualsensor1: null,
+    actualsensor2: null,
+    actualsensor3: null,
+  });
+
+  // Utility function to check if data is stale (older than 15 minutes)
+  const isDataStale = (timestamp) => {
+    if (!timestamp) return true;
+
+    // Convert timestamp string to Date object in Philippine time (UTC+8)
+    const timestampDate = new Date(timestamp);
+    const philippineTime = new Date(Date.now() + (8 * 60 * 60 * 1000)); // UTC+8
+
+    // Get timestamps in milliseconds, adjusted for Philippine time
+    const timestampMs = timestampDate.getTime();
+    const currentMs = philippineTime.getTime();
+
+    // Calculate difference in minutes
+    const diffMinutes = (currentMs - timestampMs) / (1000 * 60);
+    
+    console.log('Timestamp (UTC):', timestampDate.toISOString());
+    console.log('Current time (PHT):', philippineTime.toISOString());
+    console.log('Difference in minutes:', diffMinutes);
+
+    return diffMinutes > 15;
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'No timestamp';
+    // Simply format the timestamp from the API directly
+    const date = new Date(timestamp);
+    const formatNumber = (num) => String(num).padStart(2, '0');
+    
+    return `${date.getUTCFullYear()}-${formatNumber(date.getUTCMonth() + 1)}-${formatNumber(date.getUTCDate())} ${formatNumber(date.getUTCHours())}:${formatNumber(date.getUTCMinutes())}:${formatNumber(date.getUTCSeconds())}`;
+  };
+
   // Fetch sensor data from the backend
   useEffect(() => {
-    const fetchSensorData = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/sensor-data");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Fetched sensor data:", data);
-        setSensorValues({
-          sensor1: data.sensor1,
-          sensor2: data.sensor2,
-          sensor3: data.sensor3,
-        });
-      } catch (error) {
-        console.error("Error fetching sensor data:", error);
-      }
-    };
-
-    fetchSensorData();
-  }, []);
-
-  // Fetch actual sensor data from the backend
-  useEffect(() => {
-    const fetchactualSensorData = async () => {
+    const fetchActualSensorData = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/actualsensor-data");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log("Received sensor data:", data); // Debug log
+
+        // Store timestamps and validate data freshness
+        const timestamps = {
+          actualsensor1: data.actualsensor1?.timestamp || null,
+          actualsensor2: data.actualsensor2?.timestamp || null,
+          actualsensor3: data.actualsensor3?.timestamp || null,
+        };
+        setSensorTimestamps(timestamps);
+
+        // Only set data if it's not stale
+        const newSensorData = {
+          actualsensor1: !isDataStale(timestamps.actualsensor1) ? data.actualsensor1?.value || [] : [],
+          actualsensor2: !isDataStale(timestamps.actualsensor2) ? data.actualsensor2?.value || [] : [],
+          actualsensor3: !isDataStale(timestamps.actualsensor3) ? data.actualsensor3?.value || [] : [],
+        };
+
+        console.log("Processed sensor data:", newSensorData); // Debug log
+        setActualSensorData(newSensorData);
+        
+        // Set initial values only for fresh data
         setActualSensorValues({
-          actualsensor1: data.actualsensor1,
-          actualsensor2: data.actualsensor2,
-          actualsensor3: data.actualsensor3,
+          actualsensor1: !isDataStale(timestamps.actualsensor1) ? newSensorData.actualsensor1[0] || null : null,
+          actualsensor2: !isDataStale(timestamps.actualsensor2) ? newSensorData.actualsensor2[0] || null : null,
+          actualsensor3: !isDataStale(timestamps.actualsensor3) ? newSensorData.actualsensor3[0] || null : null,
+        });
+
+        setCurrentIndexes({
+          actualsensor1: 0,
+          actualsensor2: 0,
+          actualsensor3: 0,
         });
       } catch (error) {
         console.error("Error fetching actual sensor data:", error);
+        setActualSensorValues({
+          actualsensor1: null,
+          actualsensor2: null,
+          actualsensor3: null,
+        });
       }
     };
 
-    fetchactualSensorData();
+    fetchActualSensorData();
+    const dataInterval = setInterval(fetchActualSensorData, 15 * 60 * 1000);
+
+    return () => clearInterval(dataInterval);
   }, []);
 
   // Cycle through PSI values every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndexes((prevIndexes) => ({
-        actualsensor1: (prevIndexes.actualsensor1 + 1) % (actualSensorValues.actualsensor1?.length || 1),
-        actualsensor2: (prevIndexes.actualsensor2 + 1) % (actualSensorValues.actualsensor2?.length || 1),
-        actualsensor3: (prevIndexes.actualsensor3 + 1) % (actualSensorValues.actualsensor3?.length || 1),
-      }));
+      setCurrentIndexes(prevIndexes => {
+        // Only cycle if we have fresh data
+        if ((actualSensorData.actualsensor1.length > 0 && !isDataStale(sensorTimestamps.actualsensor1)) || 
+            (actualSensorData.actualsensor2.length > 0 && !isDataStale(sensorTimestamps.actualsensor2)) || 
+            (actualSensorData.actualsensor3.length > 0 && !isDataStale(sensorTimestamps.actualsensor3))) {
+          
+          const newIndexes = {
+            actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) ? 
+              (prevIndexes.actualsensor1 + 1) % (actualSensorData.actualsensor1.length || 1) : 0,
+            actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) ? 
+              (prevIndexes.actualsensor2 + 1) % (actualSensorData.actualsensor2.length || 1) : 0,
+            actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) ? 
+              (prevIndexes.actualsensor3 + 1) % (actualSensorData.actualsensor3.length || 1) : 0,
+          };
+          
+          // Update the displayed values, setting to null if data is stale
+          setActualSensorValues({
+            actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) ? 
+              actualSensorData.actualsensor1[newIndexes.actualsensor1] : null,
+            actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) ? 
+              actualSensorData.actualsensor2[newIndexes.actualsensor2] : null,
+            actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) ? 
+              actualSensorData.actualsensor3[newIndexes.actualsensor3] : null,
+          });
+          
+          return newIndexes;
+        }
+        return prevIndexes;
+      });
     }, 60000); // 60000ms = 1 minute
 
-    return () => clearInterval(interval); // Cleanup on component unmount
-  }, [actualSensorValues]);
+    return () => clearInterval(interval);
+  }, [actualSensorData, sensorTimestamps]);
+
+  // Fetch forecasted sensor data from the backend
+  useEffect(() => {
+    const fetchForecastedSensorData = async () => {
+      try {
+        const response = await fetch("http://localhost:5001/forecasted_psi");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        if (data.status === 'ready') {
+          setSensorValues({
+            sensor1: data.sensor1?.[0] ?? null,
+            sensor2: data.sensor2?.[0] ?? null,
+            sensor3: data.sensor3?.[0] ?? null,
+          });
+        } else if (data.status === 'collecting') {
+          console.log('Still collecting data:', data.progress.message);
+        }
+      } catch (error) {
+        console.error("Error fetching forecasted sensor data:", error);
+        setSensorValues({ sensor1: null, sensor2: null, sensor3: null });
+      }
+    };
+
+    fetchForecastedSensorData();
+    const interval = setInterval(fetchForecastedSensorData, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Socket.IO connection for valve updates
   useEffect(() => {
@@ -146,15 +257,15 @@ const ModelViewer = () => {
     const updateValveTextSprites = () => {
       Object.keys(valveTextRefs.current).forEach(valveKey => {
         const ref = valveTextRefs.current[valveKey];
-        if (ref) {
+        if (ref && ref.sprite && ref.texture) {
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
           const fontsize = 18;
           const borderThickness = 4;
-          const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey] !== null ? valveValues[valveKey] : "Loading..."}`;
+          const message = `Valve ${valveKey.slice(-1)}: ${valveValues[valveKey] !== null ? valveValues[valveKey].trim() : "Loading..."}`;
           
           // Determine border color based on valve state
-          const borderColor = valveValues[valveKey] === "Open" ? 
+          const borderColor = valveValues[valveKey] === "Open  " ? 
             "rgba(0, 180, 0, 1)" : // Darker green for open
             "rgba(200, 0, 0, 1)";   // Darker red for closed
 
@@ -200,25 +311,32 @@ const ModelViewer = () => {
           const context = canvas.getContext("2d");
           const fontsize = 18;
           const borderThickness = 4;
-          const sensorValue = sensorValues[sensorKey];
-          const message = `Sensor ${sensorKey.slice(-1)}: ${sensorValue !== null ? sensorValue : "Loading..."}`;
           
-          // Determine border color based on sensor value
+          // Get actual sensor value from state
+          const actualValue = actualSensorValues[`actualsensor${sensorKey.slice(-1)}`];
+          const forecastedValue = sensorValues[sensorKey];
+          
+          const messageLines = [
+            `Actual Value: ${actualValue !== null ? actualValue.toFixed(2) : "Loading..."}`,
+            `Forecasted Value: ${forecastedValue !== null ? forecastedValue.toFixed(2) : "Loading..."}`
+          ];
+          
+          // Determine border color based on forecasted value
           let borderColor;
-          if (sensorValue === null) {
+          if (forecastedValue === null) {
             borderColor = "rgba(100, 100, 100, 1)"; // Gray for loading/undefined
           } else {
-            borderColor = sensorValue < 7 ? 
+            borderColor = forecastedValue < 7 ? 
               "rgba(200, 0, 0, 1)" : // Red for below 7
               "rgba(0, 180, 0, 1)";  // Green for 7 or above
           }
 
           context.font = `${fontsize}px Arial`;
-          const metrics = context.measureText(message);
-          const textWidth = metrics.width;
+          const metrics = messageLines.map(line => context.measureText(line));
+          const textWidth = Math.max(...metrics.map(m => m.width));
 
           canvas.width = textWidth + borderThickness * 2;
-          canvas.height = fontsize * 1.4 + borderThickness * 2;
+          canvas.height = (fontsize * messageLines.length * 1.4) + borderThickness * 2;
 
           // Draw solid white background first
           context.fillStyle = "#ffffff";
@@ -229,10 +347,16 @@ const ModelViewer = () => {
           context.lineWidth = borderThickness;
           context.strokeRect(0, 0, canvas.width, canvas.height);
 
-          // Finally draw the text
+          // Finally draw the text lines
           context.fillStyle = "rgba(0, 0, 0, 1)";
           context.font = `${fontsize}px Arial`;
-          context.fillText(message, borderThickness, fontsize + borderThickness);
+          messageLines.forEach((line, index) => {
+            context.fillText(
+              line,
+              borderThickness,
+              fontsize + borderThickness + (index * fontsize * 1.4)
+            );
+          });
 
           ref.texture.image = canvas;
           ref.texture.needsUpdate = true;
@@ -241,7 +365,7 @@ const ModelViewer = () => {
     };
 
     updateSensorTextSprites();
-  }, [sensorValues]);
+  }, [sensorValues, actualSensorValues]);
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -290,22 +414,31 @@ const ModelViewer = () => {
         const fontsize = 18;
         const borderThickness = 4;
         
-        // Determine border color based on sensor value
+        // Get actual sensor value from state
+        const actualValue = actualSensorValues[`actualsensor${sensorKey.slice(-1)}`];
+        const forecastedValue = sensorValue;
+        
+        const messageLines = [
+          `Actual Value: ${actualValue !== null ? actualValue.toFixed(2) : "Loading..."}`,
+          `Forecasted Value: ${forecastedValue !== null ? forecastedValue.toFixed(2) : "Loading..."}`
+        ];
+        
+        // Determine border color based on forecasted value
         let borderColor;
-        if (sensorValue === null) {
+        if (forecastedValue === null) {
           borderColor = "rgba(100, 100, 100, 1)"; // Gray for loading/undefined
         } else {
-          borderColor = sensorValue < 7 ? 
+          borderColor = forecastedValue < 7 ? 
             "rgba(200, 0, 0, 1)" : // Red for below 7
             "rgba(0, 180, 0, 1)";  // Green for 7 or above
         }
 
         context.font = `${fontsize}px Arial`;
-        const metrics = context.measureText(message);
-        const textWidth = metrics.width;
+        const metrics = messageLines.map(line => context.measureText(line));
+        const textWidth = Math.max(...metrics.map(m => m.width));
 
         canvas.width = textWidth + borderThickness * 2;
-        canvas.height = fontsize * 1.4 + borderThickness * 2;
+        canvas.height = (fontsize * messageLines.length * 1.4) + borderThickness * 2;
 
         // Draw solid white background first
         context.fillStyle = "#ffffff";
@@ -316,17 +449,23 @@ const ModelViewer = () => {
         context.lineWidth = borderThickness;
         context.strokeRect(0, 0, canvas.width, canvas.height);
 
-        // Finally draw the text
+        // Finally draw the text lines
         context.fillStyle = "rgba(0, 0, 0, 1)";
         context.font = `${fontsize}px Arial`;
-        context.fillText(message, borderThickness, fontsize + borderThickness);
+        messageLines.forEach((line, index) => {
+          context.fillText(
+            line,
+            borderThickness,
+            fontsize + borderThickness + (index * fontsize * 1.4)
+          );
+        });
 
         const texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
 
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(4, 1, 1);
+        sprite.scale.set(4, 2, 1); // Increased y-scale to accommodate two lines
         return { sprite, texture };
       };
 
@@ -365,25 +504,34 @@ const ModelViewer = () => {
 
     // Create valve value bar in 3D space
     const createValveValueBar = (valvePositions) => {
-      const valveValueBar = new THREE.Group();
+      const valveGroup = new THREE.Group();
+      scene.add(valveGroup);
 
-      const createTextSprite = (message, valveState) => {
+      Object.keys(valvePositions).forEach(valveKey => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        const fontsize = 30;
-        const borderThickness = 10;
+        const fontsize = 18;
+        const borderThickness = 4;
 
-        // Determine border color based on valve state
-        const borderColor = valveState === "Open" ? 
-          "rgba(0, 180, 0, 1)" : // Darker green for open
-          "rgba(200, 0, 0, 1)";   // Darker red for closed
+        let stateText = "Loading";
+        let borderColor = "rgba(128, 128, 128, 1)"; // Default gray for loading
 
+        if (valveValues[valveKey] === "Open  ") {
+          stateText = "Open  ";
+          borderColor = "rgba(0, 180, 0, 1)";
+        } else if (valveValues[valveKey] === "Closed") {
+          stateText = "Closed";
+          borderColor = "rgba(200, 0, 0, 1)";
+        }
+
+        const message = `Valve ${valveKey.slice(-1)}: ${stateText}`;
+        
         context.font = `${fontsize}px Arial`;
         const metrics = context.measureText(message);
         const textWidth = metrics.width;
 
         canvas.width = textWidth + borderThickness * 2;
-        canvas.height = fontsize * 1.5 + borderThickness * 2;
+        canvas.height = fontsize * 1.4 + borderThickness * 2;
 
         // Draw solid white background first
         context.fillStyle = "#ffffff";
@@ -402,37 +550,22 @@ const ModelViewer = () => {
         const texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
 
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+          map: texture,
+          depthTest: false
+        });
+
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(3, 1.5, 1);
-        return { sprite, texture };
-      };
+        sprite.scale.set(4, 1, 1);
+        sprite.position.set(
+          valvePositions[valveKey].x,
+          valvePositions[valveKey].y,
+          valvePositions[valveKey].z
+        );
 
-      // Valve 1
-      const valve1 = createTextSprite(`Valve 1: ${valveValues.valve1}`, valveValues.valve1);
-      valve1.sprite.position.set(valvePositions.valve1.x, valvePositions.valve1.y, valvePositions.valve1.z);
-      valveTextRefs.current.valve1 = { sprite: valve1.sprite, texture: valve1.texture };
-      valveValueBar.add(valve1.sprite);
-
-      // Valve 2
-      const valve2 = createTextSprite(`Valve 2: ${valveValues.valve2}`, valveValues.valve2);
-      valve2.sprite.position.set(valvePositions.valve2.x, valvePositions.valve2.y, valvePositions.valve2.z);
-      valveTextRefs.current.valve2 = { sprite: valve2.sprite, texture: valve2.texture };
-      valveValueBar.add(valve2.sprite);
-
-      // Valve 3
-      const valve3 = createTextSprite(`Valve 3: ${valveValues.valve3}`, valveValues.valve3);
-      valve3.sprite.position.set(valvePositions.valve3.x, valvePositions.valve3.y, valvePositions.valve3.z);
-      valveTextRefs.current.valve3 = { sprite: valve3.sprite, texture: valve3.texture };
-      valveValueBar.add(valve3.sprite);
-
-      // Valve 4
-      const valve4 = createTextSprite(`Valve 4: ${valveValues.valve4}`, valveValues.valve4);
-      valve4.sprite.position.set(valvePositions.valve4.x, valvePositions.valve4.y, valvePositions.valve4.z);
-      valveTextRefs.current.valve4 = { sprite: valve4.sprite, texture: valve4.texture };
-      valveValueBar.add(valve4.sprite);
-
-      scene.add(valveValueBar);
+        valveTextRefs.current[valveKey] = { sprite, texture };
+        valveGroup.add(sprite);
+      });
     };
 
     const sensorPositions = {
@@ -442,10 +575,10 @@ const ModelViewer = () => {
     };
 
     const valvePositions = {
-      valve1: { x: -3.75, y: 4.82 + 1, z: 4.57 },
-      valve2: { x: -3.79, y: 4.81 + 1 , z: -7.39},
-      valve3: { x: 18.57, y: -0.72 + 2, z: 4.55 + 1.3},
-      valve4: { x: 18.58, y: -0.72 + 2, z: -7.55 - 1.3},
+      valve1: { x: -3.75, y: 5.82, z: 4.57 },
+      valve2: { x: -3.79, y: 5.81, z: -7.39 },
+      valve3: { x: 18.57, y: 1.28, z: 5.85 },
+      valve4: { x: 18.58, y: 1.28, z: -8.85 }
     };
 
     createSensorValueBar(sensorPositions);
@@ -503,6 +636,14 @@ const ModelViewer = () => {
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("click", logCoordinates);
       cancelAnimationFrame(animationFrameId);
+      
+      // Clean up valve group
+      if (sceneRef.current) {
+        const valveGroup = sceneRef.current.children.find(child => child instanceof THREE.Group);
+        if (valveGroup) {
+          sceneRef.current.remove(valveGroup);
+        }
+      }
     };
   }, []);
 
@@ -530,9 +671,19 @@ const ModelViewer = () => {
       <div className="controls">
         <div className="control-group">
           <div className="sensor-value-display">
-            {actualSensorValues.actualsensor1
-            ? `${actualSensorValues.actualsensor1[currentIndexes.actualsensor1]} PSI` // Add "PSI" after the value
-            : "Loading..."}
+            {actualSensorValues.actualsensor1 !== null ? (
+              <>
+                Current: {actualSensorValues.actualsensor1.toFixed(2)} PSI
+                <br />
+                Reading {currentIndexes.actualsensor1 + 1} of {actualSensorData.actualsensor1.length}
+                <br />
+                <span className="timestamp">
+                  Last Updated: {formatTimestamp(sensorTimestamps.actualsensor1)}
+                </span>
+              </>
+            ) : (
+              "No data available"
+            )}
           </div>
           <button
             onClick={() => zoomToSensor(-11.12, 5.20, 3.41, -14.09, 4.57, -0.13, "sensor1")}
@@ -544,9 +695,19 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-          {actualSensorValues.actualsensor2
-          ? `${actualSensorValues.actualsensor2[currentIndexes.actualsensor2]} PSI` // Add "PSI" after the value
-          : "Loading..."}
+            {actualSensorValues.actualsensor2 !== null ? (
+              <>
+                Current: {actualSensorValues.actualsensor2.toFixed(2)} PSI
+                <br />
+                Reading {currentIndexes.actualsensor2 + 1} of {actualSensorData.actualsensor2.length}
+                <br />
+                <span className="timestamp">
+                  Last Updated: {formatTimestamp(sensorTimestamps.actualsensor2)}
+                </span>
+              </>
+            ) : (
+              "No data available"
+            )}
           </div>
           <button
             onClick={() => zoomToSensor(11.93, 8.07, -2.57, 5.18, 4.33, 6.81, "sensor2")}
@@ -558,9 +719,19 @@ const ModelViewer = () => {
         
         <div className="control-group">
           <div className="sensor-value-display">
-          {actualSensorValues.actualsensor3
-        ? `${actualSensorValues.actualsensor3[currentIndexes.actualsensor3]} PSI` // Add "PSI" after the value
-        : "Loading..."}
+            {actualSensorValues.actualsensor3 !== null ? (
+              <>
+                Current: {actualSensorValues.actualsensor3.toFixed(2)} PSI
+                <br />
+                Reading {currentIndexes.actualsensor3 + 1} of {actualSensorData.actualsensor3.length}
+                <br />
+                <span className="timestamp">
+                  Last Updated: {formatTimestamp(sensorTimestamps.actualsensor3)}
+                </span>
+              </>
+            ) : (
+              "No data available"
+            )}
           </div>
           <button
             onClick={() => zoomToSensor(8.85, 5.36, -12.32, -0.21, 3.93, 1.70, "sensor3")}

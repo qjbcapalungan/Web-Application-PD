@@ -1,152 +1,149 @@
-import io
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend to avoid Tkinter issues
-import matplotlib.pyplot as plt
-import pandas as pd
-from flask import Flask, send_file, jsonify
+from flask import Flask, Response, jsonify
 from flask_cors import CORS
-import tensorflow as tf
 import numpy as np
-from pymongo import MongoClient
-import csv  # Add this import for CSV handling
+import requests
+import tensorflow as tf
+import logging
+import time
+from threading import Thread, Event
+import json
+import os
+
+# Configuration
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 app = Flask(__name__)
 CORS(app)
 
-# MongoDB setup
-MONGO_URI = "mongodb+srv://DenverMateo:admin123@Cluster0.jschv.mongodb.net/Cluster0?retryWrites=true&w=majority"
-DB_NAME = "Cluster0"
-COLLECTION_NAME = "Cluster0"  # Replace with the appropriate collection name
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-client = MongoClient(MONGO_URI)
-db = client[DB_NAME]
-collection = db[COLLECTION_NAME]
+# Data storage (strictly tracks 15-point batches)
+sensor_batches = {
+    'actualsensor1': [],
+    'actualsensor2': [],
+    'actualsensor3': []
+}
 
-# Load the LSTM model
-MODEL_PATH = r'LSTM3.h5'
-model = tf.keras.models.load_model(MODEL_PATH)
+# Forecast storage
+current_forecasts = {
+    'actualsensor1': None,
+    'actualsensor2': None,
+    'actualsensor3': None
+}
+update_event = Event()
 
+# Load model
+try:
+    logger.info("Loading prediction model...")
+    model = tf.keras.models.load_model('models/30minsPredict.keras')
+    logger.info(f"Model loaded. Input shape: {model.input_shape}")
+except Exception as e:
+    logger.error(f"Model loading error: {e}")
+    raise
 
-@app.route('/forecasted_psi', methods=['GET'])
-def get_forecasted_psi():
-    """
-    Fetch the latest 15 PSI values from MongoDB for each collection and forecast the next 15 values.
-    """
+def data_fetcher():
+    """Strictly processes one 15-point batch at a time"""
+    while True:
+        try:
+            # Fetch current data from Node.js
+            response = requests.get('http://localhost:5000/api/actualsensor-data', timeout=10)
+            if response.status_code != 200:
+                logger.warning(f"Received status {response.status_code}")
+                time.sleep(5)
+                continue
+                
+            data = response.json()
+            logger.info("Processing new 15-point batch")
+            
+            for sensor in ['actualsensor1', 'actualsensor2', 'actualsensor3']:
+                sensor_data = data.get(sensor)
+                if not sensor_data or sensor_data.get('value') is None:
+                    continue
+                
+                # Get exactly 15 values (no more, no less)
+                values = sensor_data['value']
+                values = [values] if not isinstance(values, list) else values[:15]  # Strict 15-point limit
+                
+                # Store the complete 15-point batch
+                sensor_batches[sensor] = values
+                logger.info(f"Stored 15-point batch for {sensor}")
+                
+                # Check if we have two complete batches (15 + 15 = 30)
+                if (len(sensor_batches.get('actualsensor1', [])) == 15 and
+                    len(sensor_batches.get('actualsensor2', [])) == 15):
+                    
+                    # Combine the two 15-point batches
+                    combined = (sensor_batches['actualsensor1'] + 
+                               sensor_batches['actualsensor2'])[:30]  # Ensure exactly 30
+                    
+                    # Generate forecast
+                    forecast = generate_forecast(combined)
+                    current_forecasts['actualsensor1'] = forecast
+                    current_forecasts['actualsensor2'] = forecast  # Using same forecast for both for demo
+                    
+                    # Clear batches after forecasting
+                    sensor_batches['actualsensor1'] = []
+                    sensor_batches['actualsensor2'] = []
+                    update_event.set()
+                    logger.info("Generated forecast from two 15-point batches")
+            
+            time.sleep(2)  # Mandatory delay between fetches
+            
+        except Exception as e:
+            logger.error(f"Data fetcher error: {e}")
+            time.sleep(5)
+
+def generate_forecast(input_values):
+    """Generates 30-point forecast from 30 input values"""
     try:
-        # Fetch the latest 15 PSI values from each collection
-        sim1_data = list(db["sim1_data"].find().sort("timestamp", -1).limit(15))
-        sim2_data = list(db["sim2_data"].find().sort("timestamp", -1).limit(15))
-        sim3_data = list(db["sim3_data"].find().sort("timestamp", -1).limit(15))
-
-        # Reverse to maintain chronological order
-        sim1_data.reverse()
-        sim2_data.reverse()
-        sim3_data.reverse()
-
-        # Extract the PSI values
-        sim1_psi_values = [doc['psi_values'] for doc in sim1_data]
-        sim2_psi_values = [doc['psi_values'] for doc in sim2_data]
-        sim3_psi_values = [doc['psi_values'] for doc in sim3_data]
-
-        # Ensure enough data is available for forecasting
-        if len(sim1_psi_values) < 15 or len(sim2_psi_values) < 15 or len(sim3_psi_values) < 15:
-            return jsonify({'error': 'Not enough data for forecasting'}), 400
-
-        # Prepare the input for the LSTM model
-        sim1_input = np.array(sim1_psi_values).reshape(1, 15, 1)
-        sim2_input = np.array(sim2_psi_values).reshape(1, 15, 1)
-        sim3_input = np.array(sim3_psi_values).reshape(1, 15, 1)
-
-        # Forecast the next 15 PSI values for each sensor
-        sim1_forecasted = model.predict(sim1_input).flatten().tolist()
-        sim2_forecasted = model.predict(sim2_input).flatten().tolist()
-        sim3_forecasted = model.predict(sim3_input).flatten().tolist()
-
-        # Debug logs
-        print(f"DEBUG: Sim1 Latest PSI Values: {sim1_psi_values}")
-        print(f"DEBUG: Sim1 Forecasted PSI Values: {sim1_forecasted}")
-        print(f"DEBUG: Sim2 Latest PSI Values: {sim2_psi_values}")
-        print(f"DEBUG: Sim2 Forecasted PSI Values: {sim2_forecasted}")
-        print(f"DEBUG: Sim3 Latest PSI Values: {sim3_psi_values}")
-        print(f"DEBUG: Sim3 Forecasted PSI Values: {sim3_forecasted}")
-
-        # Compile the fetched PSI values into a CSV file
-        csv_file_path = "psi_values.csv"
-        with open(csv_file_path, mode='w', newline='') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow(["Timestamp", "Sensor", "PSI Value"])  # Header row
-
-            for doc in sim1_data:
-                csv_writer.writerow([doc['timestamp'], "Sensor1", doc['psi_values']])
-            for doc in sim2_data:
-                csv_writer.writerow([doc['timestamp'], "Sensor2", doc['psi_values']])
-            for doc in sim3_data:
-                csv_writer.writerow([doc['timestamp'], "Sensor3", doc['psi_values']])
-
-        # Debug log for CSV creation
-        print(f"DEBUG: PSI values compiled into {csv_file_path}")
-
-        # Return forecasted values in a format compatible with the frontend
-        return jsonify({
-            'sensor1': sim1_forecasted,
-            'sensor2': sim2_forecasted,
-            'sensor3': sim3_forecasted,
-            'csv_file': csv_file_path  # Include CSV file path in the response
-        })
+        input_data = np.array(input_values, dtype=np.float32).reshape(1, 30, 1)
+        
+        # If model outputs single value, create 30-point forecast recursively
+        if model.output_shape[1] == 1:
+            forecasts = []
+            current_window = input_values.copy()
+            
+            for _ in range(30):
+                prediction = model.predict(
+                    np.array(current_window).reshape(1, 30, 1),
+                    verbose=0
+                )[0][0]
+                forecasts.append(float(prediction))
+                current_window = current_window[1:] + [prediction]
+            
+            return forecasts
+        else:
+            return [float(x) for x in model.predict(input_data, verbose=0)[0]]
+            
     except Exception as e:
-        print(f"ERROR in /forecasted_psi: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Forecast failed: {e}")
+        return None
 
-
-@app.route('/real_time_chart', methods=['GET'])
-def real_time_chart():
-    """
-    Generate a real-time chart comparing actual and forecasted PSI values.
-    """
-    try:
-        # Fetch the latest 15 PSI values from MongoDB
-        latest_data = list(collection.find().sort("timestamp", -1).limit(15))
-        latest_data.reverse()  # Reverse to maintain chronological order
-
-        # Extract the PSI values
-        psi_values = [doc['psi_values'] for doc in latest_data]
-        if len(psi_values) < 15:
-            return jsonify({'error': 'Not enough data for forecasting'}), 400
-
-        # Prepare the input for the LSTM model
-        input_data = np.array(psi_values).reshape(1, 15, 1)
-
-        # Forecast the next 15 PSI values
-        forecasted_values = model.predict(input_data).flatten().tolist()
-
-        # Generate the plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(range(15), psi_values, label="Actual", color='blue', marker='o', linewidth=2)
-        plt.plot(range(15, 30), forecasted_values, label="Forecasted (Next 15 Minutes)", color='red', linestyle='--', marker='x', linewidth=2)
-
-        # Adjust y-axis dynamically
-        y_min = min(min(psi_values), min(forecasted_values))
-        y_max = max(max(psi_values), max(forecasted_values))
-        plt.ylim(y_min - 0.1 * abs(y_max - y_min), y_max + 0.1 * abs(y_max - y_min))
-
-        # Add labels, title, and legend
-        plt.title("Actual vs Forecasted PSI (Next 15 Minutes)")
-        plt.xlabel("Time Steps")
-        plt.ylabel("PSI Value")
-        plt.legend()
-
-        # Save the plot
-        img = io.BytesIO()
-        plt.savefig(img, format='png')
-        img.seek(0)
-        plt.close()
-
-        return send_file(img, mimetype='image/png')
-
-    except Exception as e:
-        print(f"ERROR in /real_time_chart: {e}")
-        return jsonify({'error': str(e)}), 500
-
+@app.route('/forecast_updates')
+def forecast_updates():
+    def event_stream():
+        while True:
+            update_event.wait()
+            try:
+                data = {
+                    "status": "ready" if any(current_forecasts.values()) else "collecting",
+                    "forecasts": current_forecasts,
+                    "batches_available": {
+                        'sensor1': len(sensor_batches.get('actualsensor1', [])),
+                        'sensor2': len(sensor_batches.get('actualsensor2', [])),
+                        'sensor3': len(sensor_batches.get('actualsensor3', []))
+                    },
+                    "timestamp": time.time()
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+            finally:
+                update_event.clear()
+    
+    return Response(event_stream(), mimetype="text/event-stream")
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5001, debug=True)
+    Thread(target=data_fetcher, daemon=True).start()
+    app.run(port=5001, debug=True, threaded=True)

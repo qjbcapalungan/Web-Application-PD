@@ -103,6 +103,14 @@
   margin-right: 100px;
 }
 
+/* Timestamp Display */
+.timestamp {
+  font-size: 0.8em;
+  color: #666;
+  display: block;
+  margin-top: 4px;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 1200px) {
   .model-container {
