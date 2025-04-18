@@ -5,6 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 import "./css/ModalViewer.css";
 import { io } from "socket.io-client";
+import { useForecastData } from '../hooks/useForecastData';
 
 const ModelViewer = () => {
   const containerRef = useRef(null);
@@ -26,13 +27,6 @@ const ModelViewer = () => {
   let animationFrameId;
 
   const initialCameraPosition = { x: -21.77, y: 10.68, z: 9.76 };
-
-  // State to store sensor values
-  const [sensorValues, setSensorValues] = useState({
-    sensor1: null,
-    sensor2: null,
-    sensor3: null,
-  });
 
   // State to store valve values (connected to MQTT broker)
   const [valveValues, setValveValues] = useState({
@@ -58,7 +52,7 @@ const ModelViewer = () => {
 
   // State to store the current index for each sensor
   const [currentIndexes, setCurrentIndexes] = useState(() => {
-    const savedIndexes = localStorage.getItem('sensorIndexes');
+    const savedIndexes = localStorage.getItem('mapSensorIndexes'); // Use different key from sidebar
     return savedIndexes ? JSON.parse(savedIndexes) : {
       actualsensor1: 0,
       actualsensor2: 0,
@@ -68,7 +62,7 @@ const ModelViewer = () => {
 
   // Save indexes to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('sensorIndexes', JSON.stringify(currentIndexes));
+    localStorage.setItem('mapSensorIndexes', JSON.stringify(currentIndexes));
   }, [currentIndexes]);
 
   // State to store sensor values timestamps
@@ -171,67 +165,28 @@ const ModelViewer = () => {
     const interval = setInterval(() => {
       setCurrentIndexes(prevIndexes => {
         // Only cycle if we have fresh data
-        if ((actualSensorData.actualsensor1.length > 0 && !isDataStale(sensorTimestamps.actualsensor1)) || 
-            (actualSensorData.actualsensor2.length > 0 && !isDataStale(sensorTimestamps.actualsensor2)) || 
-            (actualSensorData.actualsensor3.length > 0 && !isDataStale(sensorTimestamps.actualsensor3))) {
-          
-          const newIndexes = {
-            actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) ? 
-              (prevIndexes.actualsensor1 + 1) % (actualSensorData.actualsensor1.length || 1) : 0,
-            actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) ? 
-              (prevIndexes.actualsensor2 + 1) % (actualSensorData.actualsensor2.length || 1) : 0,
-            actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) ? 
-              (prevIndexes.actualsensor3 + 1) % (actualSensorData.actualsensor3.length || 1) : 0,
-          };
-          
-          // Update the displayed values, setting to null if data is stale
-          setActualSensorValues({
-            actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) ? 
-              actualSensorData.actualsensor1[newIndexes.actualsensor1] : null,
-            actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) ? 
-              actualSensorData.actualsensor2[newIndexes.actualsensor2] : null,
-            actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) ? 
-              actualSensorData.actualsensor3[newIndexes.actualsensor3] : null,
-          });
-          
-          return newIndexes;
-        }
-        return prevIndexes;
+        const newIndexes = {
+          actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) && actualSensorData.actualsensor1.length > 0 ? 
+            (prevIndexes.actualsensor1 + 1) % actualSensorData.actualsensor1.length : prevIndexes.actualsensor1,
+          actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) && actualSensorData.actualsensor2.length > 0 ? 
+            (prevIndexes.actualsensor2 + 1) % actualSensorData.actualsensor2.length : prevIndexes.actualsensor2,
+          actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) && actualSensorData.actualsensor3.length > 0 ? 
+            (prevIndexes.actualsensor3 + 1) % actualSensorData.actualsensor3.length : prevIndexes.actualsensor3
+        };
+
+        // Update actual values based on new indexes
+        setActualSensorValues({
+          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
+          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
+          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
+        });
+
+        return newIndexes;
       });
-    }, 60000); // 60000ms = 1 minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [actualSensorData, sensorTimestamps]);
-
-  // Fetch forecasted sensor data from the backend
-  useEffect(() => {
-    const fetchForecastedSensorData = async () => {
-      try {
-        const response = await fetch("http://localhost:5001/forecasted_psi");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        if (data.status === 'ready') {
-          setSensorValues({
-            sensor1: data.sensor1?.[0] ?? null,
-            sensor2: data.sensor2?.[0] ?? null,
-            sensor3: data.sensor3?.[0] ?? null,
-          });
-        } else if (data.status === 'collecting') {
-          console.log('Still collecting data:', data.progress.message);
-        }
-      } catch (error) {
-        console.error("Error fetching forecasted sensor data:", error);
-        setSensorValues({ sensor1: null, sensor2: null, sensor3: null });
-      }
-    };
-
-    fetchForecastedSensorData();
-    const interval = setInterval(fetchForecastedSensorData, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Socket.IO connection for valve updates
   useEffect(() => {
@@ -257,6 +212,8 @@ const ModelViewer = () => {
       socket.disconnect();
     };
   }, []);
+
+  const forecastData = useForecastData();
 
   // Update valve text sprites when valveValues change
   useEffect(() => {
@@ -307,7 +264,7 @@ const ModelViewer = () => {
     updateValveTextSprites();
   }, [valveValues]);
 
-  // Update sensor text sprites when sensorValues change
+  // Update sensor text sprites when actual or forecast values change
   useEffect(() => {
     if (!sceneRef.current || !rendererRef.current) return;
 
@@ -320,16 +277,16 @@ const ModelViewer = () => {
           const fontsize = 18;
           const borderThickness = 4;
           
-          // Get actual sensor value from state
+          // Get actual and forecasted values
           const actualValue = actualSensorValues[`actualsensor${sensorKey.slice(-1)}`];
-          const forecastedValue = sensorValues[sensorKey];
+          const forecastedValue = forecastData[sensorKey];
           
           const messageLines = [
-            `Actual Value: ${actualValue !== null ? actualValue.toFixed(2) : "Loading..."}`,
-            `Forecasted Value: ${forecastedValue !== null ? forecastedValue.toFixed(2) : "Loading..."}`
+            `Actual Value: ${actualValue !== null ? Number(actualValue).toFixed(2) : "Loading..."}`,
+            `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."} PSI`
           ];
           
-          // Determine border color based on forecasted value
+          // Update border color based on forecasted value
           let borderColor;
           if (forecastedValue === null) {
             borderColor = "rgba(100, 100, 100, 1)"; // Gray for loading/undefined
@@ -373,7 +330,7 @@ const ModelViewer = () => {
     };
 
     updateSensorTextSprites();
-  }, [sensorValues, actualSensorValues]);
+  }, [forecastData, actualSensorValues]);
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -416,19 +373,18 @@ const ModelViewer = () => {
     const createSensorValueBar = (sensorPositions) => {
       const sensorValueBar = new THREE.Group();
 
-      const createTextSprite = (message, sensorValue, sensorKey) => {
+      const createTextSprite = (message, sensorKey) => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         const fontsize = 18;
         const borderThickness = 4;
         
-        // Get actual sensor value from state
         const actualValue = actualSensorValues[`actualsensor${sensorKey.slice(-1)}`];
-        const forecastedValue = sensorValue;
+        const forecastedValue = forecastData[sensorKey];
         
         const messageLines = [
-          `Actual Value: ${actualValue !== null ? actualValue.toFixed(2) : "Loading..."}`,
-          `Forecasted Value: ${forecastedValue !== null ? forecastedValue.toFixed(2) : "Loading..."}`
+          `Actual Value: ${actualValue !== null ? Number(actualValue).toFixed(2) : "Loading..."} PSI`,
+          `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."} PSI`
         ];
         
         // Determine border color based on forecasted value
@@ -479,8 +435,7 @@ const ModelViewer = () => {
 
       // Sensor 1
       const sensor1 = createTextSprite(
-        `Sensor 1: ${sensorValues.sensor1 !== null ? sensorValues.sensor1 : "Loading..."}`,
-        sensorValues.sensor1,
+        `Sensor 1: ${actualSensorValues.actualsensor1 !== null ? actualSensorValues.actualsensor1 : "Loading..."}`,
         "sensor1"
       );
       sensor1.sprite.position.set(sensorPositions.sensor1.x, sensorPositions.sensor1.y, sensorPositions.sensor1.z);
@@ -489,8 +444,7 @@ const ModelViewer = () => {
 
       // Sensor 2
       const sensor2 = createTextSprite(
-        `Sensor 2: ${sensorValues.sensor2 !== null ? sensorValues.sensor2 : "Loading..."}`,
-        sensorValues.sensor2,
+        `Sensor 2: ${actualSensorValues.actualsensor2 !== null ? actualSensorValues.actualsensor2 : "Loading..."}`,
         "sensor2"
       );
       sensor2.sprite.position.set(sensorPositions.sensor2.x, sensorPositions.sensor2.y, sensorPositions.sensor2.z);
@@ -499,8 +453,7 @@ const ModelViewer = () => {
 
       // Sensor 3
       const sensor3 = createTextSprite(
-        `Sensor 3: ${sensorValues.sensor3 !== null ? sensorValues.sensor3 : "Loading..."}`,
-        sensorValues.sensor3,
+        `Sensor 3: ${actualSensorValues.actualsensor3 !== null ? actualSensorValues.actualsensor3 : "Loading..."}`,
         "sensor3"
       );
       sensor3.sprite.position.set(sensorPositions.sensor3.x, sensorPositions.sensor3.y, sensorPositions.sensor3.z);

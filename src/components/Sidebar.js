@@ -3,6 +3,7 @@ import "./css/Sidebar.css";
 import { FaBars, FaTachometerAlt, FaQuestionCircle, FaUser, FaTimes, FaChartLine } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import axios for API calls
+import { useForecastData } from '../hooks/useForecastData';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -10,10 +11,15 @@ function Sidebar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [sensorData, setSensorData] = useState({
-    sensor1: [],
-    sensor2: [],
-    sensor3: []
+  const [sensorTimestamps, setSensorTimestamps] = useState({
+    sensor1: null,
+    sensor2: null,
+    sensor3: null
+  });
+  const [newDataAvailable, setNewDataAvailable] = useState({
+    sensor1: false,
+    sensor2: false,
+    sensor3: false
   });
   const [currentSensorIndexes, setCurrentSensorIndexes] = useState(() => {
     const savedIndexes = localStorage.getItem('sensorIndexes');
@@ -25,43 +31,49 @@ function Sidebar() {
   });
   const [error, setError] = useState(null);
   const [faultHistory, setFaultHistory] = useState([]);
-  const [sensorTimestamps, setSensorTimestamps] = useState({
-    sensor1: null,
-    sensor2: null,
-    sensor3: null
+
+  // State to store actual sensor values
+  const [actualSensorValues, setActualSensorValues] = useState({
+    actualsensor1: null,
+    actualsensor2: null,
+    actualsensor3: null,
   });
-  const [newDataAvailable, setNewDataAvailable] = useState({
-    sensor1: false,
-    sensor2: false,
-    sensor3: false
+
+  // State to store all actual sensor data arrays
+  const [actualSensorData, setActualSensorData] = useState({
+    actualsensor1: [],
+    actualsensor2: [],
+    actualsensor3: [],
   });
+
+  const forecastData = useForecastData();
 
   useEffect(() => {
     localStorage.setItem('sensorIndexes', JSON.stringify(currentSensorIndexes));
   }, [currentSensorIndexes]);
 
-  const formatTimestamp = (timestamp) => {
+  const formatTimestamp = (timestamp, isForecasted = false) => {
     if (!timestamp) return 'No timestamp available';
-    // Simply format the timestamp from the API directly
     const date = new Date(timestamp);
-    const formatNumber = (num) => String(num).padStart(2, '0');
     
+    // Add exactly 30 minutes for forecasted values
+    if (isForecasted) {
+      date.setMinutes(date.getMinutes() + 30);
+    }
+    
+    const formatNumber = (num) => String(num).padStart(2, '0');
     return `${date.getUTCFullYear()}-${formatNumber(date.getUTCMonth() + 1)}-${formatNumber(date.getUTCDate())} ${formatNumber(date.getUTCHours())}:${formatNumber(date.getUTCMinutes())}:${formatNumber(date.getUTCSeconds())}`;
   };
 
-  // Utility function to check if data is stale (older than 15 minutes)
   const isDataStale = (timestamp) => {
     if (!timestamp) return true;
 
-    // Convert timestamp string to Date object in Philippine time (UTC+8)
     const timestampDate = new Date(timestamp);
     const philippineTime = new Date(Date.now() + (8 * 60 * 60 * 1000)); // UTC+8
 
-    // Get timestamps in milliseconds, adjusted for Philippine time
     const timestampMs = timestampDate.getTime();
     const currentMs = philippineTime.getTime();
 
-    // Calculate difference in minutes
     const diffMinutes = (currentMs - timestampMs) / (1000 * 60);
     
     console.log('Timestamp (UTC):', timestampDate.toISOString());
@@ -71,10 +83,16 @@ function Sidebar() {
     return diffMinutes > 15;
   };
 
-  // Function to check if pressure indicates a fault
-  const checkFault = (pressure) => {
+  const checkFault = (pressure, isForecast = false) => {
     if (pressure === null || pressure === undefined) return false;
-    return pressure < 7;
+    if (pressure < 7) {
+      return {
+        type: pressure < 4 ? 'Critical' : 'Warning',
+        value: pressure,
+        isForecasted: isForecast
+      };
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -83,7 +101,6 @@ function Sidebar() {
         const response = await axios.get("http://localhost:5000/api/actualsensor-data");
         const data = response.data;
 
-        // Store timestamps
         const timestamps = {
           sensor1: data.actualsensor1?.timestamp || null,
           sensor2: data.actualsensor2?.timestamp || null,
@@ -91,72 +108,68 @@ function Sidebar() {
         };
         setSensorTimestamps(timestamps);
 
-        // Check for faults in new data
         const newFaults = [];
+        const newActualValues = {
+          actualsensor1: null,
+          actualsensor2: null,
+          actualsensor3: null
+        };
+        const newActualData = {
+          actualsensor1: [],
+          actualsensor2: [],
+          actualsensor3: []
+        };
         
-        if (data.actualsensor1?.value) {
-          const value = data.actualsensor1.value[0];
-          if (checkFault(value)) {
-            newFaults.push({
-              sensor: 'Sensor 1',
-              value: value,
-              timestamp: data.actualsensor1.timestamp,
-              type: value < 4 ? 'Critical' : 'Warning'
-            });
-          }
-        }
-        
-        if (data.actualsensor2?.value) {
-          const value = data.actualsensor2.value[0];
-          if (checkFault(value)) {
-            newFaults.push({
-              sensor: 'Sensor 2',
-              value: value,
-              timestamp: data.actualsensor2.timestamp,
-              type: value < 4 ? 'Critical' : 'Warning'
-            });
-          }
-        }
-        
-        if (data.actualsensor3?.value) {
-          const value = data.actualsensor3.value[0];
-          if (checkFault(value)) {
-            newFaults.push({
-              sensor: 'Sensor 3',
-              value: value,
-              timestamp: data.actualsensor3.timestamp,
-              type: value < 4 ? 'Critical' : 'Warning'
-            });
+        for (let i = 1; i <= 3; i++) {
+          const sensorKey = `actualsensor${i}`;
+          const sensorData = data[sensorKey];
+          
+          if (sensorData?.value) {
+            const value = Array.isArray(sensorData.value) ? sensorData.value[0] : sensorData.value;
+            newActualValues[sensorKey] = value;
+            newActualData[sensorKey] = Array.isArray(sensorData.value) ? sensorData.value : [sensorData.value];
+            
+            const fault = checkFault(value);
+            if (fault) {
+              newFaults.push({
+                sensor: `Sensor ${i}`,
+                value: value,
+                timestamp: sensorData.timestamp,
+                type: fault.type,
+                isForecasted: false
+              });
+            }
           }
         }
 
-        // Update fault history with new faults
+        setActualSensorValues(newActualValues);
+        setActualSensorData(newActualData);
+
+        Object.entries(forecastData).forEach(([key, value]) => {
+          if (value !== null) {
+            const fault = checkFault(value, true);
+            if (fault) {
+              newFaults.push({
+                sensor: `Sensor ${key.slice(-1)}`,
+                value: value,
+                timestamp: new Date().toISOString(),
+                type: fault.type,
+                isForecasted: true
+              });
+            }
+          }
+        });
+
         if (newFaults.length > 0) {
-          setFaultHistory(prev => [...newFaults, ...prev].slice(0, 10)); // Keep last 10 faults
+          setFaultHistory(prev => [...newFaults, ...prev].slice(0, 10));
         }
 
-        // Set newDataAvailable to true for sensors with fresh data
         setNewDataAvailable({
           sensor1: !isDataStale(timestamps.sensor1),
           sensor2: !isDataStale(timestamps.sensor2),
           sensor3: !isDataStale(timestamps.sensor3)
         });
 
-        // Reset newDataAvailable after 5 seconds
-        setTimeout(() => {
-          setNewDataAvailable({
-            sensor1: false,
-            sensor2: false,
-            sensor3: false
-          });
-        }, 5000);
-
-        // Only set data if it's not stale
-        setSensorData({
-          sensor1: !isDataStale(timestamps.sensor1) ? data.actualsensor1?.value || [] : [],
-          sensor2: !isDataStale(timestamps.sensor2) ? data.actualsensor2?.value || [] : [],
-          sensor3: !isDataStale(timestamps.sensor3) ? data.actualsensor3?.value || [] : []
-        });
       } catch (error) {
         console.error("Error fetching actual sensor data:", error);
         setError({
@@ -167,28 +180,36 @@ function Sidebar() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 15 * 60 * 1000); // Refresh every 15 minutes
+    const interval = setInterval(fetchData, 15 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [forecastData]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSensorIndexes(prev => {
-        // Only cycle if we have fresh data
+        // Only cycle if we have fresh data and values exist
         const newIndexes = {
-          sensor1: !isDataStale(sensorTimestamps.sensor1) ? 
-            (prev.sensor1 + 1) % (sensorData.sensor1.length || 1) : prev.sensor1,
-          sensor2: !isDataStale(sensorTimestamps.sensor2) ? 
-            (prev.sensor2 + 1) % (sensorData.sensor2.length || 1) : prev.sensor2,
-          sensor3: !isDataStale(sensorTimestamps.sensor3) ? 
-            (prev.sensor3 + 1) % (sensorData.sensor3.length || 1) : prev.sensor3
+          actualsensor1: !isDataStale(sensorTimestamps.sensor1) && actualSensorData.actualsensor1.length > 0 ? 
+            (prev.actualsensor1 + 1) % actualSensorData.actualsensor1.length : prev.actualsensor1,
+          actualsensor2: !isDataStale(sensorTimestamps.sensor2) && actualSensorData.actualsensor2.length > 0 ? 
+            (prev.actualsensor2 + 1) % actualSensorData.actualsensor2.length : prev.actualsensor2,
+          actualsensor3: !isDataStale(sensorTimestamps.sensor3) && actualSensorData.actualsensor3.length > 0 ? 
+            (prev.actualsensor3 + 1) % actualSensorData.actualsensor3.length : prev.actualsensor3
         };
+
+        // Update actual values based on new indexes
+        setActualSensorValues(prev => ({
+          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
+          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
+          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
+        }));
+
         return newIndexes;
       });
-    }, 60000); // Change every minute
+    }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [sensorData, sensorTimestamps]);
+  }, [actualSensorData, sensorTimestamps]);
 
   const getSensorStatus = (pressure) => {
     if (pressure === null || pressure === undefined || isNaN(pressure)) return 'unavailable';
@@ -224,19 +245,21 @@ function Sidebar() {
     if (isDashboardOpen) setIsDashboardOpen(false);
   };
 
-  const renderSensorCard = (sensorNum) => {
-    const sensorKey = `sensor${sensorNum}`;
+  const renderSensorCard = (sensorNum, isForecasted = false) => {
+    const sensorKey = isForecasted ? `sensor${sensorNum}` : `actualsensor${sensorNum}`;
     const currentIndex = currentSensorIndexes[sensorKey];
-    const values = sensorData[sensorKey];
-    const isStale = isDataStale(sensorTimestamps[sensorKey]);
-    const currentValue = !isStale ? values[currentIndex] : null;
+    const values = isForecasted ? null : actualSensorData[sensorKey];
+    const isStale = isDataStale(sensorTimestamps[`sensor${sensorNum}`]);
+    const currentValue = !isStale ? 
+      (isForecasted ? forecastData[`sensor${sensorNum}`] : actualSensorValues[sensorKey]) : 
+      null;
     const status = getSensorStatus(currentValue);
-    const isNewData = newDataAvailable[sensorKey];
+    const isNewData = newDataAvailable[`sensor${sensorNum}`];
 
     return (
-      <div className={`sensor-card ${status} ${isNewData ? 'new-data' : ''}`}>
+      <div className={`sensor-card ${status} ${isNewData ? 'new-data' : ''} ${isForecasted ? 'forecasted-card' : ''}`}>
         <div className="sensor-header">
-          <h4>Sensor {sensorNum}</h4>
+          <h4>{isForecasted ? 'Forecasted' : ''} Sensor {sensorNum}</h4>
           <span className={`status-badge ${status}`}>
             {status === 'unavailable' ? 'No Data' : status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
@@ -250,16 +273,18 @@ function Sidebar() {
              'No data available'}
           </p>
           <p>
-            <strong>Actual Pressure:</strong>
+            <strong>Value:</strong>
             {!isStale && currentValue ? `${currentValue.toFixed(4)} psi` : 'No data available'}
           </p>
+          {!isForecasted && values && values.length > 0 && (
+            <p>
+              <strong>Reading:</strong>
+              {!isStale ? `${currentSensorIndexes[sensorKey] + 1} of ${values.length}` : 'No data available'}
+            </p>
+          )}
           <p>
-            <strong>Reading:</strong>
-            {!isStale && values.length > 0 ? `${currentIndex + 1} of ${values.length}` : 'No data available'}
-          </p>
-          <p>
-            <strong>Last Update:</strong>
-            {formatTimestamp(sensorTimestamps[sensorKey])}
+            <strong>{isForecasted ? 'Expected Time:' : 'Last Update:'}</strong>
+            {formatTimestamp(sensorTimestamps[`sensor${sensorNum}`], isForecasted)}
           </p>
         </div>
       </div>
@@ -274,16 +299,20 @@ function Sidebar() {
       </div>
       <div className="dashboard-panel-body">
         {renderSensorCard(1)}
+        {renderSensorCard(1, true)}
         {renderSensorCard(2)}
+        {renderSensorCard(2, true)}
         {renderSensorCard(3)}
+        {renderSensorCard(3, true)}
         
-        {/* Fault History Section */}
         <div className="fault-history">
           <h4>Fault History</h4>
           {faultHistory.length > 0 ? (
             faultHistory.map((fault, index) => (
               <div key={index} className={`fault-record ${fault.type.toLowerCase()}`}>
-                <p><strong>{fault.sensor}</strong>: {fault.value.toFixed(4)} PSI</p>
+                <p>
+                  <strong>{fault.isForecasted ? 'Forecasted ' : ''}{fault.sensor}</strong>: {fault.value.toFixed(4)} PSI
+                </p>
                 <p><strong>Type</strong>: {fault.type}</p>
                 <p><strong>Time</strong>: {formatTimestamp(fault.timestamp)}</p>
               </div>
@@ -298,7 +327,6 @@ function Sidebar() {
 
   return (
     <div className="sidebar-container">
-      {/* Sidebar */}
       <div className={`sidebar ${isExpanded ? "expanded" : ""}`}>
         <div className="sidebar-toggle" onClick={toggleSidebar}>
           <FaBars />
@@ -321,7 +349,6 @@ function Sidebar() {
         </div>
       </div>
 
-      {/* Error Notification Bar */}
       {error && (
         <div className="error-notification-bar">
           <div className="error-notification-content">
@@ -332,10 +359,8 @@ function Sidebar() {
         </div>
       )}
 
-      {/* Dashboard Panel */}
       {isDashboardOpen && renderDashboardPanel()}
 
-      {/* Profile Panel */}
       {isProfileOpen && (
         <div className="profile-panel">
           <div className="profile-panel-header">
@@ -352,7 +377,6 @@ function Sidebar() {
         </div>
       )}
 
-      {/* Help Modal */}
       {isHelpModalOpen && (
         <div className="modal-overlay">
           <div className="modal">

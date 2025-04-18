@@ -97,16 +97,15 @@ def data_fetcher():
             time.sleep(5)
 
 def generate_forecast(input_values):
-    """Generates 30-point forecast from 30 input values"""
+    """Generates 15-point forecast from 15 input values"""
     try:
         input_data = np.array(input_values, dtype=np.float32).reshape(1, 30, 1)
         
-        # If model outputs single value, create 30-point forecast recursively
         if model.output_shape[1] == 1:
             forecasts = []
             current_window = input_values.copy()
             
-            for _ in range(30):
+            for _ in range(15):
                 prediction = model.predict(
                     np.array(current_window).reshape(1, 30, 1),
                     verbose=0
@@ -130,11 +129,10 @@ def forecast_updates():
             try:
                 data = {
                     "status": "ready" if any(current_forecasts.values()) else "collecting",
-                    "forecasts": current_forecasts,
-                    "batches_available": {
-                        'sensor1': len(sensor_batches.get('actualsensor1', [])),
-                        'sensor2': len(sensor_batches.get('actualsensor2', [])),
-                        'sensor3': len(sensor_batches.get('actualsensor3', []))
+                    "forecasts": {
+                        "sensor1": current_forecasts.get('actualsensor1'),
+                        "sensor2": current_forecasts.get('actualsensor2'),
+                        "sensor3": current_forecasts.get('actualsensor3')
                     },
                     "timestamp": time.time()
                 }
@@ -143,6 +141,19 @@ def forecast_updates():
                 update_event.clear()
     
     return Response(event_stream(), mimetype="text/event-stream")
+
+# Add a new endpoint for getting the current forecasts
+@app.route('/api/forecast-data')
+def get_forecast_data():
+    return jsonify({
+        "status": "ready" if any(current_forecasts.values()) else "collecting",
+        "forecasts": {
+            "sensor1": current_forecasts.get('actualsensor1'),
+            "sensor2": current_forecasts.get('actualsensor2'),
+            "sensor3": current_forecasts.get('actualsensor3')
+        },
+        "timestamp": time.time()
+    })
 
 if __name__ == '__main__':
     Thread(target=data_fetcher, daemon=True).start()

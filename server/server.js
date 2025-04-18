@@ -126,7 +126,7 @@ mqttClient.on("message", (topic, message) => {
         
         // Update to new state after a brief delay
         setTimeout(() => {
-          valveStates[valveKey] = state === "ON" ? "Closed" : "Open  ";
+          valveStates[valveKey] = state === "ON" ? "Closed" : "Open   ";
           io.emit("valve-update", { ...valveStates });
           console.log(`Updated ${valveKey} to ${valveStates[valveKey]}`);
         }, 100);

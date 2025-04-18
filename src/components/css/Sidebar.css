@@ -126,6 +126,11 @@
   min-width: 250px;
 }
 
+.forecasted-card {
+  background: #f0f7ff;  /* Lighter blue background to distinguish from actual sensor cards */
+  border-style: dashed;
+}
+
 .sensor-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
