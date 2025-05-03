@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -6,6 +6,7 @@ import gsap from "gsap";
 import "./css/ModalViewer.css";
 import { io } from "socket.io-client";
 import { useForecastData } from '../hooks/useForecastData';
+import { SensorContext } from "../context/SensorContext";
 
 const ModelViewer = () => {
   const containerRef = useRef(null);
@@ -50,27 +51,50 @@ const ModelViewer = () => {
     actualsensor3: [],
   });
 
-  // State to store the current index for each sensor
-  const [currentIndexes, setCurrentIndexes] = useState(() => {
-    const savedIndexes = localStorage.getItem('mapSensorIndexes'); // Use different key from sidebar
-    return savedIndexes ? JSON.parse(savedIndexes) : {
-      actualsensor1: 0,
-      actualsensor2: 0,
-      actualsensor3: 0,
-    };
-  });
-
-  // Save indexes to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('mapSensorIndexes', JSON.stringify(currentIndexes));
-  }, [currentIndexes]);
-
   // State to store sensor values timestamps
   const [sensorTimestamps, setSensorTimestamps] = useState({
     actualsensor1: null,
     actualsensor2: null,
     actualsensor3: null,
   });
+
+  const { currentSensorIndexes, setCurrentSensorIndexes } = useContext(SensorContext);
+
+  // Apply saved indexes to set initial actual sensor values
+  useEffect(() => {
+    setActualSensorValues(prev => ({
+      actualsensor1: actualSensorData.actualsensor1[currentSensorIndexes.actualsensor1] ?? null,
+      actualsensor2: actualSensorData.actualsensor2[currentSensorIndexes.actualsensor2] ?? null,
+      actualsensor3: actualSensorData.actualsensor3[currentSensorIndexes.actualsensor3] ?? null
+    }));
+  }, [actualSensorData, currentSensorIndexes]);
+
+  // Cycle through PSI values every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSensorIndexes(prevIndexes => {
+        const newIndexes = {
+          actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) && actualSensorData.actualsensor1.length > 0 ? 
+            ((prevIndexes.actualsensor1 + 1) < actualSensorData.actualsensor1.length ? prevIndexes.actualsensor1 + 1 : 0) : prevIndexes.actualsensor1,
+          actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) && actualSensorData.actualsensor2.length > 0 ? 
+            ((prevIndexes.actualsensor2 + 1) < actualSensorData.actualsensor2.length ? prevIndexes.actualsensor2 + 1 : 0) : prevIndexes.actualsensor2,
+          actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) && actualSensorData.actualsensor3.length > 0 ? 
+            ((prevIndexes.actualsensor3 + 1) < actualSensorData.actualsensor3.length ? prevIndexes.actualsensor3 + 1 : 0) : prevIndexes.actualsensor3
+        };
+
+        // Update actual values based on new indexes
+        setActualSensorValues(prev => ({
+          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
+          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
+          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
+        }));
+
+        return newIndexes;
+      });
+    }, 60000); // Changed to 60000 for 60 seconds
+
+    return () => clearInterval(interval);
+  }, [actualSensorData, sensorTimestamps, setCurrentSensorIndexes]);
 
   // Utility function to check if data is stale (older than 15 minutes)
   const isDataStale = (timestamp) => {
@@ -139,7 +163,7 @@ const ModelViewer = () => {
           actualsensor3: !isDataStale(timestamps.actualsensor3) ? newSensorData.actualsensor3[0] || null : null,
         });
 
-        setCurrentIndexes({
+        setCurrentSensorIndexes({
           actualsensor1: 0,
           actualsensor2: 0,
           actualsensor3: 0,
@@ -159,34 +183,6 @@ const ModelViewer = () => {
 
     return () => clearInterval(dataInterval);
   }, []);
-
-  // Cycle through PSI values every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndexes(prevIndexes => {
-        // Only cycle if we have fresh data
-        const newIndexes = {
-          actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) && actualSensorData.actualsensor1.length > 0 ? 
-            (prevIndexes.actualsensor1 + 1) % actualSensorData.actualsensor1.length : prevIndexes.actualsensor1,
-          actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) && actualSensorData.actualsensor2.length > 0 ? 
-            (prevIndexes.actualsensor2 + 1) % actualSensorData.actualsensor2.length : prevIndexes.actualsensor2,
-          actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) && actualSensorData.actualsensor3.length > 0 ? 
-            (prevIndexes.actualsensor3 + 1) % actualSensorData.actualsensor3.length : prevIndexes.actualsensor3
-        };
-
-        // Update actual values based on new indexes
-        setActualSensorValues({
-          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
-          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
-          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
-        });
-
-        return newIndexes;
-      });
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [actualSensorData, sensorTimestamps]);
 
   // Socket.IO connection for valve updates
   useEffect(() => {
@@ -276,16 +272,16 @@ const ModelViewer = () => {
           const context = canvas.getContext("2d");
           const fontsize = 18;
           const borderThickness = 4;
-          
+
           // Get actual and forecasted values
           const actualValue = actualSensorValues[`actualsensor${sensorKey.slice(-1)}`];
           const forecastedValue = forecastData[sensorKey];
-          
+
           const messageLines = [
             `Actual Value: ${actualValue !== null ? Number(actualValue).toFixed(2) : "Loading..."}`,
-            `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."} PSI`
+            `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."}`
           ];
-          
+
           // Update border color based on forecasted value
           let borderColor;
           if (forecastedValue === null) {
@@ -383,8 +379,8 @@ const ModelViewer = () => {
         const forecastedValue = forecastData[sensorKey];
         
         const messageLines = [
-          `Actual Value: ${actualValue !== null ? Number(actualValue).toFixed(2) : "Loading..."} PSI`,
-          `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."} PSI`
+          `Actual Value: ${actualValue !== null ? Number(actualValue).toFixed(2) : "Loading..."}`,
+          `Forecasted Value: ${forecastedValue !== null ? Number(forecastedValue).toFixed(2) : "Loading..."}`
         ];
         
         // Determine border color based on forecasted value
@@ -634,9 +630,9 @@ const ModelViewer = () => {
           <div className="sensor-value-display">
             {actualSensorValues.actualsensor1 !== null ? (
               <>
-                Current: {actualSensorValues.actualsensor1.toFixed(2)} PSI
+                Current: {actualSensorValues.actualsensor1.toFixed(2)}
                 <br />
-                Reading {currentIndexes.actualsensor1 + 1} of {actualSensorData.actualsensor1.length}
+                Reading {currentSensorIndexes.actualsensor1 + 1} of {actualSensorData.actualsensor1.length}
                 <br />
                 <span className="timestamp">
                   Last Updated: {formatTimestamp(sensorTimestamps.actualsensor1)}
@@ -660,7 +656,7 @@ const ModelViewer = () => {
               <>
                 Current: {actualSensorValues.actualsensor2.toFixed(2)} PSI
                 <br />
-                Reading {currentIndexes.actualsensor2 + 1} of {actualSensorData.actualsensor2.length}
+                Reading {currentSensorIndexes.actualsensor2 + 1} of {actualSensorData.actualsensor2.length}
                 <br />
                 <span className="timestamp">
                   Last Updated: {formatTimestamp(sensorTimestamps.actualsensor2)}
@@ -684,7 +680,7 @@ const ModelViewer = () => {
               <>
                 Current: {actualSensorValues.actualsensor3.toFixed(2)} PSI
                 <br />
-                Reading {currentIndexes.actualsensor3 + 1} of {actualSensorData.actualsensor3.length}
+                Reading {currentSensorIndexes.actualsensor3 + 1} of {actualSensorData.actualsensor3.length}
                 <br />
                 <span className="timestamp">
                   Last Updated: {formatTimestamp(sensorTimestamps.actualsensor3)}

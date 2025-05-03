@@ -1,6 +1,7 @@
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 import numpy as np
+import pandas as pd  # Added for DataFrame handling
 import requests
 import tensorflow as tf
 import logging
@@ -8,6 +9,7 @@ import time
 from threading import Thread, Event
 import json
 import os
+import joblib  # Correct import for joblib
 
 # Configuration
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -29,9 +31,9 @@ sensor_batches = {
 
 # Forecast storage
 current_forecasts = {
-    'actualsensor1': None,
-    'actualsensor2': None,
-    'actualsensor3': None
+    'sensor1': None,
+    'sensor2': None,
+    'sensor3': None
 }
 update_event = Event()
 
@@ -44,79 +46,96 @@ except Exception as e:
     logger.error(f"Model loading error: {e}")
     raise
 
+# Load the scaler
+try:
+    logger.info("Loading scaler...")
+    scaler = joblib.load('models/scaler.pkl')  # Adjust path if necessary
+    logger.info("Scaler loaded successfully.")
+except Exception as e:
+    logger.error(f"Scaler loading error: {e}")
+    raise
+
 def data_fetcher():
-    """Strictly processes one 15-point batch at a time"""
+    """Fetches data in batches of 15 points to form 30-point input for forecasting."""
     while True:
         try:
-            # Fetch current data from Node.js
+            # Fetch current data from the actualsensor-data API
             response = requests.get('http://localhost:5000/api/actualsensor-data', timeout=10)
             if response.status_code != 200:
                 logger.warning(f"Received status {response.status_code}")
                 time.sleep(5)
                 continue
-                
+
             data = response.json()
-            logger.info("Processing new 15-point batch")
-            
-            for sensor in ['actualsensor1', 'actualsensor2', 'actualsensor3']:
-                sensor_data = data.get(sensor)
-                if not sensor_data or sensor_data.get('value') is None:
+            logger.info("Processing new data batch")
+
+            for sensor_key in ['actualsensor1', 'actualsensor2', 'actualsensor3']:
+                sensor_data = data.get(sensor_key)
+                if not sensor_data or not sensor_data.get('value'):
+                    logger.info(f"{sensor_key}: No data available")
                     continue
-                
-                # Get exactly 15 values (no more, no less)
-                values = sensor_data['value']
-                values = [values] if not isinstance(values, list) else values[:15]  # Strict 15-point limit
-                
-                # Store the complete 15-point batch
-                sensor_batches[sensor] = values
-                logger.info(f"Stored 15-point batch for {sensor}")
-                
-                # Check if we have two complete batches (15 + 15 = 30)
-                if (len(sensor_batches.get('actualsensor1', [])) == 15 and
-                    len(sensor_batches.get('actualsensor2', [])) == 15):
+
+                # Get the latest 15 values
+                new_values = sensor_data['value']
+                if not isinstance(new_values, list):
+                    new_values = [new_values]
+                new_values = new_values[:15]  # Take only up to 15 values
+
+                # Store timestamp info
+                timestamp = sensor_data.get('timestamp')
+                logger.info(f"{sensor_key}: Got {len(new_values)} new values, timestamp: {timestamp}")
+
+                # If we already have 15 values and get a new batch, use both for prediction
+                if len(sensor_batches[sensor_key]) >= 15:
+                    # Combine previous 15 with new 15 for prediction
+                    combined_values = sensor_batches[sensor_key] + new_values
+                    if len(combined_values) == 30:
+                        # Generate forecast
+                        forecast_num = int(sensor_key[-1])  # Extract sensor number
+                        forecast_key = f'sensor{forecast_num}'
+                        forecast = generate_forecast(combined_values)
+                        if forecast is not None:
+                            logger.info(f"Generated forecast for {forecast_key}: {forecast}")
+                            current_forecasts[forecast_key] = forecast
+                            update_event.set()
+                            logger.info(f"Current forecasts: {current_forecasts}")
+                        else:
+                            logger.warning(f"Failed to generate forecast for {forecast_key}")
                     
-                    # Combine the two 15-point batches
-                    combined = (sensor_batches['actualsensor1'] + 
-                               sensor_batches['actualsensor2'])[:30]  # Ensure exactly 30
-                    
-                    # Generate forecast
-                    forecast = generate_forecast(combined)
-                    current_forecasts['actualsensor1'] = forecast
-                    current_forecasts['actualsensor2'] = forecast  # Using same forecast for both for demo
-                    
-                    # Clear batches after forecasting
-                    sensor_batches['actualsensor1'] = []
-                    sensor_batches['actualsensor2'] = []
-                    update_event.set()
-                    logger.info("Generated forecast from two 15-point batches")
-            
-            time.sleep(2)  # Mandatory delay between fetches
-            
+                    # Store only the new values for next iteration
+                    sensor_batches[sensor_key] = new_values
+                else:
+                    # First batch of 15, just store it
+                    sensor_batches[sensor_key] = new_values
+                    logger.info(f"{sensor_key}: Stored first batch of {len(new_values)} values")
+
+            time.sleep(60)  # Check every minute
+
         except Exception as e:
             logger.error(f"Data fetcher error: {e}")
             time.sleep(5)
 
 def generate_forecast(input_values):
-    """Generates 15-point forecast from 15 input values"""
+    """Generates a single forecast value from 30 input values"""
     try:
-        input_data = np.array(input_values, dtype=np.float32).reshape(1, 30, 1)
-        
-        if model.output_shape[1] == 1:
-            forecasts = []
-            current_window = input_values.copy()
-            
-            for _ in range(15):
-                prediction = model.predict(
-                    np.array(current_window).reshape(1, 30, 1),
-                    verbose=0
-                )[0][0]
-                forecasts.append(float(prediction))
-                current_window = current_window[1:] + [prediction]
-            
-            return forecasts
-        else:
-            return [float(x) for x in model.predict(input_data, verbose=0)[0]]
-            
+        # Convert input values to a NumPy array
+        input_data = np.array(input_values, dtype=np.float32).reshape(-1, 1)
+
+        # Ensure input data has valid feature names if the scaler was fitted with feature names
+        if hasattr(scaler, "feature_names_in_"):
+            input_data = pd.DataFrame(input_data, columns=scaler.feature_names_in_)
+
+        # Scale input data
+        input_data_scaled = scaler.transform(input_data).reshape(1, 30, 1)
+
+        # Predict a single value (output shape is (0, 1, 0))
+        prediction = model.predict(input_data_scaled, verbose=0)[0][0]
+
+        # Scale back prediction
+        prediction_rescaled = scaler.inverse_transform([[prediction]])[0][0]
+
+        return float(prediction_rescaled)
+
     except Exception as e:
         logger.error(f"Forecast failed: {e}")
         return None
@@ -130,27 +149,38 @@ def forecast_updates():
                 data = {
                     "status": "ready" if any(current_forecasts.values()) else "collecting",
                     "forecasts": {
-                        "sensor1": current_forecasts.get('actualsensor1'),
-                        "sensor2": current_forecasts.get('actualsensor2'),
-                        "sensor3": current_forecasts.get('actualsensor3')
+                        "sensor1": current_forecasts.get('sensor1'),
+                        "sensor2": current_forecasts.get('sensor2'),
+                        "sensor3": current_forecasts.get('sensor3')
                     },
                     "timestamp": time.time()
                 }
                 yield f"data: {json.dumps(data)}\n\n"
+            except Exception as e:
+                logger.error(f"Error in event stream: {e}")
             finally:
                 update_event.clear()
     
-    return Response(event_stream(), mimetype="text/event-stream")
+    response = Response(event_stream(), mimetype="text/event-stream")
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Connection'] = 'keep-alive'
+    return response
 
-# Add a new endpoint for getting the current forecasts
 @app.route('/api/forecast-data')
 def get_forecast_data():
+    """API endpoint to fetch the current forecast data along with input data."""
     return jsonify({
         "status": "ready" if any(current_forecasts.values()) else "collecting",
         "forecasts": {
-            "sensor1": current_forecasts.get('actualsensor1'),
-            "sensor2": current_forecasts.get('actualsensor2'),
-            "sensor3": current_forecasts.get('actualsensor3')
+            "sensor1": current_forecasts.get('sensor1'),
+            "sensor2": current_forecasts.get('sensor2'),
+            "sensor3": current_forecasts.get('sensor3')
+        },
+        "batch_status": {
+            "sensor1": len(sensor_batches['actualsensor1']),
+            "sensor2": len(sensor_batches['actualsensor2']),
+            "sensor3": len(sensor_batches['actualsensor3'])
         },
         "timestamp": time.time()
     })

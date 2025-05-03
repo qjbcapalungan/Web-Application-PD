@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import "./css/Sidebar.css";
 import { FaBars, FaTachometerAlt, FaQuestionCircle, FaUser, FaTimes, FaChartLine } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import axios for API calls
 import { useForecastData } from '../hooks/useForecastData';
+import { SensorContext } from "../context/SensorContext";
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -21,14 +22,7 @@ function Sidebar() {
     sensor2: false,
     sensor3: false
   });
-  const [currentSensorIndexes, setCurrentSensorIndexes] = useState(() => {
-    const savedIndexes = localStorage.getItem('sensorIndexes');
-    return savedIndexes ? JSON.parse(savedIndexes) : {
-      sensor1: 0,
-      sensor2: 0,
-      sensor3: 0
-    };
-  });
+  const { currentSensorIndexes, setCurrentSensorIndexes } = useContext(SensorContext);
   const [error, setError] = useState(null);
   const [faultHistory, setFaultHistory] = useState([]);
 
@@ -49,8 +43,13 @@ function Sidebar() {
   const forecastData = useForecastData();
 
   useEffect(() => {
-    localStorage.setItem('sensorIndexes', JSON.stringify(currentSensorIndexes));
-  }, [currentSensorIndexes]);
+    // Apply saved indexes to set initial actual sensor values
+    setActualSensorValues({
+      actualsensor1: actualSensorData.actualsensor1[currentSensorIndexes.actualsensor1] ?? null,
+      actualsensor2: actualSensorData.actualsensor2[currentSensorIndexes.actualsensor2] ?? null,
+      actualsensor3: actualSensorData.actualsensor3[currentSensorIndexes.actualsensor3] ?? null
+    });
+  }, [actualSensorData, currentSensorIndexes]);
 
   const formatTimestamp = (timestamp, isForecasted = false) => {
     if (!timestamp) return 'No timestamp available';
@@ -187,26 +186,29 @@ function Sidebar() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSensorIndexes(prev => {
-        // Only cycle if we have fresh data and values exist
+        // Only increment by 1 if we have data and it's fresh
         const newIndexes = {
           actualsensor1: !isDataStale(sensorTimestamps.sensor1) && actualSensorData.actualsensor1.length > 0 ? 
-            (prev.actualsensor1 + 1) % actualSensorData.actualsensor1.length : prev.actualsensor1,
+            (prev.actualsensor1 + 1 >= actualSensorData.actualsensor1.length ? 0 : prev.actualsensor1 + 1) : 
+            prev.actualsensor1,
           actualsensor2: !isDataStale(sensorTimestamps.sensor2) && actualSensorData.actualsensor2.length > 0 ? 
-            (prev.actualsensor2 + 1) % actualSensorData.actualsensor2.length : prev.actualsensor2,
+            (prev.actualsensor2 + 1 >= actualSensorData.actualsensor2.length ? 0 : prev.actualsensor2 + 1) : 
+            prev.actualsensor2,
           actualsensor3: !isDataStale(sensorTimestamps.sensor3) && actualSensorData.actualsensor3.length > 0 ? 
-            (prev.actualsensor3 + 1) % actualSensorData.actualsensor3.length : prev.actualsensor3
+            (prev.actualsensor3 + 1 >= actualSensorData.actualsensor3.length ? 0 : prev.actualsensor3 + 1) : 
+            prev.actualsensor3
         };
 
-        // Update actual values based on new indexes
-        setActualSensorValues(prev => ({
+        // Update values immediately after index change
+        setActualSensorValues({
           actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
           actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
           actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
-        }));
+        });
 
         return newIndexes;
       });
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [actualSensorData, sensorTimestamps]);
@@ -247,7 +249,6 @@ function Sidebar() {
 
   const renderSensorCard = (sensorNum, isForecasted = false) => {
     const sensorKey = isForecasted ? `sensor${sensorNum}` : `actualsensor${sensorNum}`;
-    const currentIndex = currentSensorIndexes[sensorKey];
     const values = isForecasted ? null : actualSensorData[sensorKey];
     const isStale = isDataStale(sensorTimestamps[`sensor${sensorNum}`]);
     const currentValue = !isStale ? 
