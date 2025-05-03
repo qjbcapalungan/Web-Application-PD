@@ -87,7 +87,7 @@ function Sidebar() {
     if (pressure < 7) {
       return {
         type: pressure < 4 ? 'Critical' : 'Warning',
-        value: pressure,
+        value: Number(pressure),  // Convert to number explicitly
         isForecasted: isForecast
       };
     }
@@ -257,6 +257,11 @@ function Sidebar() {
     const status = getSensorStatus(currentValue);
     const isNewData = newDataAvailable[`sensor${sensorNum}`];
 
+    const formatValue = (value) => {
+      if (value === null || value === undefined || isNaN(value)) return 'No data available';
+      return `${Number(value).toFixed(4)} psi`;
+    };
+
     return (
       <div className={`sensor-card ${status} ${isNewData ? 'new-data' : ''} ${isForecasted ? 'forecasted-card' : ''}`}>
         <div className="sensor-header">
@@ -275,7 +280,7 @@ function Sidebar() {
           </p>
           <p>
             <strong>Value:</strong>
-            {!isStale && currentValue ? `${currentValue.toFixed(4)} psi` : 'No data available'}
+            {!isStale ? formatValue(currentValue) : 'No data available'}
           </p>
           {!isForecasted && values && values.length > 0 && (
             <p>
@@ -312,7 +317,8 @@ function Sidebar() {
             faultHistory.map((fault, index) => (
               <div key={index} className={`fault-record ${fault.type.toLowerCase()}`}>
                 <p>
-                  <strong>{fault.isForecasted ? 'Forecasted ' : ''}{fault.sensor}</strong>: {fault.value.toFixed(4)} PSI
+                  <strong>{fault.isForecasted ? 'Forecasted ' : ''}{fault.sensor}</strong>: 
+                  {typeof fault.value === 'number' ? fault.value.toFixed(4) : 'N/A'} PSI
                 </p>
                 <p><strong>Type</strong>: {fault.type}</p>
                 <p><strong>Time</strong>: {formatTimestamp(fault.timestamp)}</p>
