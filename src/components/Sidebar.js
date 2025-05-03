@@ -43,12 +43,15 @@ function Sidebar() {
   const forecastData = useForecastData();
 
   useEffect(() => {
-    // Apply saved indexes to set initial actual sensor values
-    setActualSensorValues({
-      actualsensor1: actualSensorData.actualsensor1[currentSensorIndexes.actualsensor1] ?? null,
-      actualsensor2: actualSensorData.actualsensor2[currentSensorIndexes.actualsensor2] ?? null,
-      actualsensor3: actualSensorData.actualsensor3[currentSensorIndexes.actualsensor3] ?? null
-    });
+    const updateSensorValues = () => {
+      setActualSensorValues({
+        actualsensor1: actualSensorData.actualsensor1[currentSensorIndexes.actualsensor1] ?? null,
+        actualsensor2: actualSensorData.actualsensor2[currentSensorIndexes.actualsensor2] ?? null,
+        actualsensor3: actualSensorData.actualsensor3[currentSensorIndexes.actualsensor3] ?? null
+      });
+    };
+
+    updateSensorValues();
   }, [actualSensorData, currentSensorIndexes]);
 
   const formatTimestamp = (timestamp, isForecasted = false) => {
@@ -160,7 +163,7 @@ function Sidebar() {
         });
 
         if (newFaults.length > 0) {
-          setFaultHistory(prev => [...newFaults, ...prev].slice(0, 10));
+          setFaultHistory(prev => [...newFaults, ...prev]);
         }
 
         setNewDataAvailable({
@@ -182,36 +185,6 @@ function Sidebar() {
     const interval = setInterval(fetchData, 15 * 60 * 1000);
     return () => clearInterval(interval);
   }, [forecastData]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSensorIndexes(prev => {
-        // Only increment by 1 if we have data and it's fresh
-        const newIndexes = {
-          actualsensor1: !isDataStale(sensorTimestamps.sensor1) && actualSensorData.actualsensor1.length > 0 ? 
-            (prev.actualsensor1 + 1 >= actualSensorData.actualsensor1.length ? 0 : prev.actualsensor1 + 1) : 
-            prev.actualsensor1,
-          actualsensor2: !isDataStale(sensorTimestamps.sensor2) && actualSensorData.actualsensor2.length > 0 ? 
-            (prev.actualsensor2 + 1 >= actualSensorData.actualsensor2.length ? 0 : prev.actualsensor2 + 1) : 
-            prev.actualsensor2,
-          actualsensor3: !isDataStale(sensorTimestamps.sensor3) && actualSensorData.actualsensor3.length > 0 ? 
-            (prev.actualsensor3 + 1 >= actualSensorData.actualsensor3.length ? 0 : prev.actualsensor3 + 1) : 
-            prev.actualsensor3
-        };
-
-        // Update values immediately after index change
-        setActualSensorValues({
-          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
-          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
-          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
-        });
-
-        return newIndexes;
-      });
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [actualSensorData, sensorTimestamps]);
 
   const getSensorStatus = (pressure) => {
     if (pressure === null || pressure === undefined || isNaN(pressure)) return 'unavailable';

@@ -72,29 +72,29 @@ const ModelViewer = () => {
   // Cycle through PSI values every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSensorIndexes(prevIndexes => {
+      const now = Date.now();
+      
+      setCurrentSensorIndexes(prev => {
+        // Create new indexes first
         const newIndexes = {
-          actualsensor1: !isDataStale(sensorTimestamps.actualsensor1) && actualSensorData.actualsensor1.length > 0 ? 
-            ((prevIndexes.actualsensor1 + 1) < actualSensorData.actualsensor1.length ? prevIndexes.actualsensor1 + 1 : 0) : prevIndexes.actualsensor1,
-          actualsensor2: !isDataStale(sensorTimestamps.actualsensor2) && actualSensorData.actualsensor2.length > 0 ? 
-            ((prevIndexes.actualsensor2 + 1) < actualSensorData.actualsensor2.length ? prevIndexes.actualsensor2 + 1 : 0) : prevIndexes.actualsensor2,
-          actualsensor3: !isDataStale(sensorTimestamps.actualsensor3) && actualSensorData.actualsensor3.length > 0 ? 
-            ((prevIndexes.actualsensor3 + 1) < actualSensorData.actualsensor3.length ? prevIndexes.actualsensor3 + 1 : 0) : prevIndexes.actualsensor3
+          actualsensor1: (prev.actualsensor1 + 1) % actualSensorData.actualsensor1.length,
+          actualsensor2: (prev.actualsensor2 + 1) % actualSensorData.actualsensor2.length,
+          actualsensor3: (prev.actualsensor3 + 1) % actualSensorData.actualsensor3.length
         };
 
         // Update actual values based on new indexes
-        setActualSensorValues(prev => ({
-          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1] ?? null,
-          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2] ?? null,
-          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3] ?? null
-        }));
+        setActualSensorValues({
+          actualsensor1: actualSensorData.actualsensor1[newIndexes.actualsensor1],
+          actualsensor2: actualSensorData.actualsensor2[newIndexes.actualsensor2],
+          actualsensor3: actualSensorData.actualsensor3[newIndexes.actualsensor3]
+        });
 
         return newIndexes;
       });
-    }, 60000); // Changed to 60000 for 60 seconds
+    }, 60000); // Update every 60 seconds
 
     return () => clearInterval(interval);
-  }, [actualSensorData, sensorTimestamps, setCurrentSensorIndexes]);
+  }, [actualSensorData]); // Only depend on actualSensorData
 
   // Utility function to check if data is stale (older than 15 minutes)
   const isDataStale = (timestamp) => {

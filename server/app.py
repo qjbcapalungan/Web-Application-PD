@@ -22,11 +22,23 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Data storage (strictly tracks 15-point batches)
+# Data storage for sensor batches
 sensor_batches = {
-    'actualsensor1': [],
-    'actualsensor2': [],
-    'actualsensor3': []
+    'actualsensor1': {
+        'first_batch': [],
+        'second_batch': [],
+        'last_timestamp': None
+    },
+    'actualsensor2': {
+        'first_batch': [],
+        'second_batch': [],
+        'last_timestamp': None
+    },
+    'actualsensor3': {
+        'first_batch': [],
+        'second_batch': [],
+        'last_timestamp': None
+    }
 }
 
 # Forecast storage
@@ -59,15 +71,16 @@ def data_fetcher():
     """Fetches data in batches of 15 points to form 30-point input for forecasting."""
     while True:
         try:
-            # Fetch current data from the actualsensor-data API
-            response = requests.get('http://localhost:5000/api/actualsensor-data', timeout=10)
+            # Log the fetch attempt
+            logger.info("Attempting to fetch new data...")
+            response = requests.get('http://178.128.48.126:8081/api/actualsensor-data', timeout=10)
             if response.status_code != 200:
                 logger.warning(f"Received status {response.status_code}")
                 time.sleep(5)
                 continue
 
             data = response.json()
-            logger.info("Processing new data batch")
+            logger.info("Received data from API")
 
             for sensor_key in ['actualsensor1', 'actualsensor2', 'actualsensor3']:
                 sensor_data = data.get(sensor_key)
@@ -75,41 +88,68 @@ def data_fetcher():
                     logger.info(f"{sensor_key}: No data available")
                     continue
 
-                # Get the latest 15 values
                 new_values = sensor_data['value']
+                new_timestamp = sensor_data.get('timestamp')
+
                 if not isinstance(new_values, list):
                     new_values = [new_values]
-                new_values = new_values[:15]  # Take only up to 15 values
+                new_values = new_values[:15]
 
-                # Store timestamp info
-                timestamp = sensor_data.get('timestamp')
-                logger.info(f"{sensor_key}: Got {len(new_values)} new values, timestamp: {timestamp}")
+                # Debug log the current state
+                logger.info(f"Current state for {sensor_key}:")
+                logger.info(f"- First batch size: {len(sensor_batches[sensor_key]['first_batch'])}")
+                logger.info(f"- Second batch size: {len(sensor_batches[sensor_key]['second_batch'])}")
+                logger.info(f"- New values size: {len(new_values)}")
+                logger.info(f"- Last timestamp: {sensor_batches[sensor_key]['last_timestamp']}")
+                logger.info(f"- New timestamp: {new_timestamp}")
 
-                # If we already have 15 values and get a new batch, use both for prediction
-                if len(sensor_batches[sensor_key]) >= 15:
-                    # Combine previous 15 with new 15 for prediction
-                    combined_values = sensor_batches[sensor_key] + new_values
-                    if len(combined_values) == 30:
-                        # Generate forecast
-                        forecast_num = int(sensor_key[-1])  # Extract sensor number
-                        forecast_key = f'sensor{forecast_num}'
-                        forecast = generate_forecast(combined_values)
-                        if forecast is not None:
-                            logger.info(f"Generated forecast for {forecast_key}: {forecast}")
-                            current_forecasts[forecast_key] = forecast
-                            update_event.set()
-                            logger.info(f"Current forecasts: {current_forecasts}")
-                        else:
-                            logger.warning(f"Failed to generate forecast for {forecast_key}")
+                # Check if this is new data by comparing timestamps
+                if new_timestamp != sensor_batches[sensor_key]['last_timestamp']:
+                    logger.info(f"{sensor_key}: Processing new data batch")
                     
-                    # Store only the new values for next iteration
-                    sensor_batches[sensor_key] = new_values
-                else:
-                    # First batch of 15, just store it
-                    sensor_batches[sensor_key] = new_values
-                    logger.info(f"{sensor_key}: Stored first batch of {len(new_values)} values")
+                    # If first batch is empty, store there
+                    if not sensor_batches[sensor_key]['first_batch']:
+                        sensor_batches[sensor_key]['first_batch'] = new_values
+                        sensor_batches[sensor_key]['last_timestamp'] = new_timestamp
+                        logger.info(f"{sensor_key}: Stored first batch ({len(new_values)} values)")
+                    
+                    # If we have first batch but second is empty, store in second
+                    elif not sensor_batches[sensor_key]['second_batch']:
+                        sensor_batches[sensor_key]['second_batch'] = new_values
+                        sensor_batches[sensor_key]['last_timestamp'] = new_timestamp
+                        logger.info(f"{sensor_key}: Stored second batch ({len(new_values)} values)")
+                        
+                        # Now we should have 30 values, generate forecast
+                        combined_values = (
+                            sensor_batches[sensor_key]['first_batch'] +
+                            sensor_batches[sensor_key]['second_batch']
+                        )
+                        
+                        if len(combined_values) == 30:
+                            forecast_num = int(sensor_key[-1])
+                            forecast_key = f'sensor{forecast_num}'
+                            forecast = generate_forecast(combined_values)
+                            
+                            if forecast is not None:
+                                logger.info(f"Generated forecast for {forecast_key}: {forecast}")
+                                current_forecasts[forecast_key] = forecast
+                                update_event.set()
+                            
+                            # Move second batch to first and clear second
+                            sensor_batches[sensor_key]['first_batch'] = sensor_batches[sensor_key]['second_batch']
+                            sensor_batches[sensor_key]['second_batch'] = []
+                            logger.info(f"{sensor_key}: Reset batches after forecast")
+                    
+                    else:
+                        # If both batches are full, move second to first and store new values in second
+                        sensor_batches[sensor_key]['first_batch'] = sensor_batches[sensor_key]['second_batch']
+                        sensor_batches[sensor_key]['second_batch'] = new_values
+                        sensor_batches[sensor_key]['last_timestamp'] = new_timestamp
+                        logger.info(f"{sensor_key}: Updated batches with new values")
 
-            time.sleep(60)  # Check every minute
+            # Wait for 1 minute before next fetch
+            logger.info("Waiting 60 seconds before next fetch...")
+            time.sleep(60)
 
         except Exception as e:
             logger.error(f"Data fetcher error: {e}")
@@ -168,22 +208,30 @@ def forecast_updates():
 
 @app.route('/api/forecast-data')
 def get_forecast_data():
-    """API endpoint to fetch the current forecast data along with input data."""
+    """API endpoint to fetch the current forecast data along with batch status."""
     return jsonify({
         "status": "ready" if any(current_forecasts.values()) else "collecting",
-        "forecasts": {
-            "sensor1": current_forecasts.get('sensor1'),
-            "sensor2": current_forecasts.get('sensor2'),
-            "sensor3": current_forecasts.get('sensor3')
-        },
+        "forecasts": current_forecasts,
         "batch_status": {
-            "sensor1": len(sensor_batches['actualsensor1']),
-            "sensor2": len(sensor_batches['actualsensor2']),
-            "sensor3": len(sensor_batches['actualsensor3'])
+            "sensor1": {
+                "first_batch_size": len(sensor_batches['actualsensor1']['first_batch']),
+                "second_batch_size": len(sensor_batches['actualsensor1']['second_batch']),
+                "last_update": sensor_batches['actualsensor1']['last_timestamp']
+            },
+            "sensor2": {
+                "first_batch_size": len(sensor_batches['actualsensor2']['first_batch']),
+                "second_batch_size": len(sensor_batches['actualsensor2']['second_batch']),
+                "last_update": sensor_batches['actualsensor2']['last_timestamp']
+            },
+            "sensor3": {
+                "first_batch_size": len(sensor_batches['actualsensor3']['first_batch']),
+                "second_batch_size": len(sensor_batches['actualsensor3']['second_batch']),
+                "last_update": sensor_batches['actualsensor3']['last_timestamp']
+            }
         },
         "timestamp": time.time()
     })
 
 if __name__ == '__main__':
     Thread(target=data_fetcher, daemon=True).start()
-    app.run(port=5001, debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=5002, debug=True, threaded=True)
