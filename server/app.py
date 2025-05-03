@@ -162,7 +162,6 @@ def forecast_updates():
                 update_event.clear()
     
     response = Response(event_stream(), mimetype="text/event-stream")
-    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['Connection'] = 'keep-alive'
     return response

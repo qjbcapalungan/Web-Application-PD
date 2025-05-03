@@ -131,7 +131,7 @@ const ModelViewer = () => {
   useEffect(() => {
     const fetchActualSensorData = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/actualsensor-data");
+        const response = await fetch("http://178.128.48.126:8081/api/actualsensor-data");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -186,7 +186,7 @@ const ModelViewer = () => {
 
   // Socket.IO connection for valve updates
   useEffect(() => {
-    const socket = io("http://localhost:5000");
+    const socket = io("http://178.128.48.126:8081");
 
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");

@@ -8,7 +8,7 @@ export function useForecastData() {
   });
 
   useEffect(() => {
-    const eventSource = new EventSource('http://localhost:5001/forecast_updates');
+    const eventSource = new EventSource('http://178.128.48.126:8082/forecast_updates');
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

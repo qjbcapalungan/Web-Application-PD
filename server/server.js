@@ -6,6 +6,11 @@ const { Server } = require("socket.io");
 const { MongoClient } = require("mongodb"); // Import MongoDB client
 
 const app = express();
+app.use(cors({
+  origin: "http://178.128.48.126:8080",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+}));
 const port = 5000;
 
 // Store valve states
@@ -93,10 +98,10 @@ mqttClient.on("connect", () => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Allow requests from the frontend
+    origin: "http://178.128.48.126:8080", // Allow requests from the frontend
     methods: ["GET", "POST"], // Allow these HTTP methods
     allowedHeaders: ["Content-Type"], // Allow specific headers
-    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+     // Allow credentials (cookies, authorization headers, etc.)
   },
 });
 
@@ -138,7 +143,7 @@ mqttClient.on("message", (topic, message) => {
 });
 
 // Add CORS middleware to allow frontend to fetch data
-app.use(cors());
+
 
 // API endpoint to fetch valve data
 app.get("/api/valve-data", (req, res) => {

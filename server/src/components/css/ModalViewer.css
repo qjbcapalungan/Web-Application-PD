@@ -1,0 +1,166 @@
+/* Model Viewer Container */
+.model-wrapper {
+  position: relative;
+  width: 100%;
+  height: min(100vh, 100dvh); /* Use dynamic viewport height */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: clamp(5px, 2vh, 20px) 0 0 0; /* Fluid padding */
+  box-sizing: border-box;
+  background: #fff;
+  overflow: hidden;
+}
+
+.model-container {
+  width: min(99vw, 1500px);
+  height: min(88vh, 850px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: 
+  radial-gradient(circle at center, #f0f0f0 0%, #d0d0d0 100%);
+  overflow: hidden;
+  border-radius: clamp(8px, 1vw, 12px) clamp(8px, 1vw, 12px) 0 0; /* Fluid border radius */
+  box-shadow: 0px clamp(4px, 1vw, 8px) clamp(10px, 2vw, 20px) rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* Controls Container */
+.controls {
+  position: absolute;
+  bottom: clamp(10px, 3vh, 30px); /* Fluid bottom spacing */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: clamp(10px, 1.5vw, 25px); 
+  z-index: 100;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  width: 95%;
+  max-width: min(95vw, 1400px);
+  padding: clamp(10px, 1.5vh, 15px);
+  background: rgba(255, 255, 255, 0.945);
+  backdrop-filter: blur(8px);
+  border-radius: clamp(10px, 1.5vw, 16px);
+  border: 1px solid rgba(17, 17, 17, 0);
+}
+
+/* Button Groups */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(5px, 1vh, 8px);
+  flex: 1 0 auto;
+  min-width: min(140px, 25vw);
+  font-size: 1.2rem;
+}
+
+/* Button Styles */
+.sensor-btn,
+.reset-btn {
+  padding: clamp(10px, 1.5vh, 14px) clamp(15px, 2vw, 24px);
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: clamp(8px, 1vw, 10px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 clamp(3px, 1vw, 4px) clamp(5px, 1.5vw, 8px) rgba(0, 0, 0, 0.15);
+  color: rgb(255, 255, 255);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: min(140px, 30vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(5px, 1vw, 10px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Individual Button Colors */
+.sensor-btn:nth-child(1) {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.sensor-btn:nth-child(2) {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.sensor-btn:nth-child(3) {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+/* Reset Button */
+.reset-btn {
+  background: linear-gradient(135deg, #ff6347, #e55337);
+  order: 999;
+  margin-left: auto;
+  margin-right: 100px;
+}
+
+/* Sensor Value Display */
+.sensor-value-display {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 12px;
+}
+
+/* Timestamp Display */
+.timestamp {
+  font-size: 0.8em;
+  color: #666;
+  display: block;
+  margin-top: 4px;
+}
+
+.sensor-value-display .timestamp {
+  font-size: 1.1rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .model-container {
+    height: min(94vh, 850px);
+  }
+}
+
+@media (max-width: 768px) {
+  .model-wrapper {
+    padding-top: clamp(5px, 1vh, 10px);
+    align-items: center;
+  }
+  .model-container {
+    width: 100vw;
+    height: min(96vh, 100dvh);
+    border-radius: 0;
+  }
+  .controls {
+    width: 96%;
+  }
+}
+
+@media (max-width: 480px) {
+  .model-wrapper {
+    padding-top: clamp(2px, 0.5vh, 5px);
+  }
+  .model-container {
+    height: min(97vh, 100dvh);
+  }
+  .controls {
+    gap: clamp(5px, 1vh, 10px);
+  }
+  .control-group {
+    width: 45%;
+    min-width: auto;
+  }
+  .reset-btn {
+    width: 90%;
+    margin: clamp(3px, 0.5vh, 5px) auto;
+  }
+}

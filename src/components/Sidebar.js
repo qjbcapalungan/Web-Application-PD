@@ -97,7 +97,7 @@ function Sidebar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/actualsensor-data");
+        const response = await axios.get("http://178.128.48.126:8081/api/actualsensor-data");
         const data = response.data;
 
         const timestamps = {
